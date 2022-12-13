@@ -2,6 +2,8 @@
 
 namespace Unic;
 
+use BadMethodCallException;
+use Exception;
 use ReflectionFunction;
 use Unic\Http\Request;
 use Unic\Http\Response;
@@ -72,12 +74,18 @@ class App
                 }
             }
             if (!empty($callbacks)) {
-                $callStack = array_merge($callStack, $callbacks);
+                foreach ($callbacks as $callback) {
+                    $callStack[] = $callback;
+                }
             }
         }
 
         // Run callstack
-        $this->runRouteMiddleware($request, $response, $callStack);
+        $context = [
+            'callStack' => $callStack,
+            'index' => 0,
+        ];
+        $this->runRouteMiddleware($request, $response, $context);
 
         if ($response instanceof Response) {
             // Send response
@@ -85,37 +93,40 @@ class App
         }
     }
 
-    private function runRouteMiddleware(Request $request, Response $response, array &$callbacks, $error = null)
+    private function runRouteMiddleware(Request $request, Response $response, array &$context, $error = null)
     {
-        if (!empty($callbacks)) {
-            $callback = $callbacks[0];
-            array_shift($callbacks);
+        if (!empty($context['callStack'][$context['index']])) {
+            $callback = $context['callStack'][$context['index']];
+            $context['index']++;
+            if (!is_callable($callback)) {
+                throw new BadMethodCallException();
+            }
             $function = new ReflectionFunction($callback);
             $parameters = $function->getParameters();
             $parameterCount = count($parameters);
             // Skip route middleware if error is passed
             if (!empty($error) && $parameterCount <= 3) {
-                return $this->runRouteMiddleware($request, $response, $callbacks, $error);
+                return $this->runRouteMiddleware($request, $response, $context, $error);
             }
             // Run middleware
             if ($parameterCount == 2) {
                 return $callback($request, $response);
             } else if ($parameterCount == 3) {
-                return $callback($request, $response, function ($error = null) use ($request, $response, $callbacks) {
-                    $this->runRouteMiddleware($request, $response, $callbacks, $error);
+                return $callback($request, $response, function ($error = null) use ($request, $response, $context) {
+                    $this->runRouteMiddleware($request, $response, $context, $error);
                 });
             } else {
                 // Skip error middleware if error is not passed
                 if (empty($error)) {
-                    return $this->runRouteMiddleware($request, $response, $callbacks, $error);
+                    return $this->runRouteMiddleware($request, $response, $context, $error);
                 }
                 if ($parameterCount == 4) {
-                    return $callback($error, $request, $response, function ($error = null) use ($request, $response, $callbacks) {
-                        $this->runRouteMiddleware($request, $response, $callbacks, $error);
+                    return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
+                        $this->runRouteMiddleware($request, $response, $context, $error);
                     });
                 } else {
-                    return $callback($error, $request, $response, function ($error = null) use ($request, $response, $callbacks) {
-                        $this->runRouteMiddleware($request, $response, $callbacks, $error);
+                    return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
+                        $this->runRouteMiddleware($request, $response, $context, $error);
                     }, ...array_fill(0, $parameterCount - 4, null));
                 }
             }
