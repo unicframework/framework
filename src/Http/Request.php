@@ -127,7 +127,7 @@ class Request
         } else if (strtolower($this->contentType) == 'application/json') {
             $this->body = json_decode($this->body ?? '');
         } else if (preg_match('/multipart\/form-data;/', strtolower($this->contentType))) {
-            $this->body = &$_REQUEST;
+            $this->body = (object) $_REQUEST;
         }
     }
 
