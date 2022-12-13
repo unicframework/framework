@@ -133,22 +133,25 @@ trait HttpRouterTrait
 
     protected function mergeRoutes(array $routes)
     {
-        $this->routes = array_merge($this->routes, $routes);
+        foreach ($routes as $row) {
+            $this->routes[] = $row;
+        }
     }
 
     protected function mergeGroupedRoutes(string $route, array $routes)
     {
         $prefix = trim(trim($route), '/');
-        $groupedRoutes = [];
         foreach ($routes as $row) {
             if (!empty($prefix)) {
                 if (!empty($row['route']['path'])) {
                     $row['route']['path'] = $prefix . '/' . $row['route']['path'];
+                } else {
+                    $row['route']['path'] = $prefix;
                 }
             }
-            $groupedRoutes[] = [
+            $this->routes[] = [
                 'type' => 'route',
-                'callbacks' => $row['route']['callbacks'],
+                'callbacks' => $row['callbacks'],
                 'route' => [
                     'method' => $row['route']['method'],
                     'path' => $row['route']['path'],
@@ -158,7 +161,6 @@ trait HttpRouterTrait
                 ],
             ];
         }
-        $this->routes = array_merge($this->routes, $groupedRoutes);
     }
 
     public function group(string $route, $callback)
