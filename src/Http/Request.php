@@ -115,6 +115,20 @@ class Request
         $this->secure = $this->scheme == 'HTTPS' ? true : false;
 
         $this->isXhr = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest' ? true : false;
+
+        // Parse request body
+        if (strtolower($this->contentType) == 'application/x-www-form-urlencoded') {
+            $bodyStringList = explode('&', $this->body);
+            $this->body = new stdClass();
+            foreach ($bodyStringList as $row) {
+                $tmp = explode('=', $row);
+                $this->body->{$tmp[0]} = $tmp[1];
+            }
+        } else if (strtolower($this->contentType) == 'application/json') {
+            $this->body = json_decode($this->body ?? '');
+        } else if (preg_match('/multipart\/form-data;/', strtolower($this->contentType))) {
+            $this->body = &$_REQUEST;
+        }
     }
 
     public function header(string $header)
