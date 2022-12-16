@@ -2,6 +2,7 @@
 
 use Unic\App;
 use Unic\Config;
+use Unic\Http\Request;
 
 ob_start();
 
@@ -19,14 +20,14 @@ if (!function_exists('route')) {
 if (!function_exists('base_url')) {
     function base_url()
     {
-        return Config::getInstance('request')->baseUrl;
+        return Request::getInstance()->baseUrl;
     }
 }
 
 if (!function_exists('url')) {
     function url(string $path = '')
     {
-        return Config::getInstance('request')->baseUrl . '/' . trim($path, '/');
+        return Request::getInstance()->baseUrl . '/' . trim($path, '/');
     }
 }
 
@@ -34,7 +35,7 @@ if (!function_exists('asset')) {
     function asset(string $path = '')
     {
         $staticPath = Config::get('publicUrl') . '/' . ltrim($path, '/');
-        return Config::getInstance('request')->baseUrl . '/' . ltrim($staticPath, '/');
+        return Request::getInstance()->baseUrl . '/' . ltrim($staticPath, '/');
     }
 }
 

@@ -3,7 +3,6 @@
 namespace Unic;
 
 use BadMethodCallException;
-use Exception;
 use ReflectionFunction;
 use Unic\Http\Request;
 use Unic\Http\Response;
@@ -26,10 +25,8 @@ class App
 
     private function requestHander(array $compiledRoutes)
     {
-        $request = new Request();
+        $request = Request::getInstance();
         $response = new Response();
-
-        Config::setInstance('request', $request);
 
         $callStack = [];
         foreach ($compiledRoutes as $row) {
