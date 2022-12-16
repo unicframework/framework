@@ -34,8 +34,9 @@ class Request
     public $contentLength = null;
     public $userAgent = null;
     public $referrer = null;
+    private static $instance = null;
 
-    public function __construct()
+    private function __construct()
     {
         /**
          * Request Body
@@ -129,6 +130,14 @@ class Request
         } else if (preg_match('/multipart\/form-data;/', strtolower($this->contentType))) {
             $this->body = (object) $_REQUEST;
         }
+    }
+
+    public static function getInstance()
+    {
+        if (self::$instance == null) {
+            self::$instance = new Request();
+        }
+        return self::$instance;
     }
 
     public function header(string $header)

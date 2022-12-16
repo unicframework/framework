@@ -18,6 +18,7 @@ class Response
     private $view = null;
     private $args = null;
     private $isSent = false;
+    private $isEnd = false;
     public $locals = null;
 
     public function __construct()
@@ -75,6 +76,20 @@ class Response
         $this->throwExceptionIfHeaderIsSent();
         $this->statusCode = $httpResponseCode;
         return $this;
+    }
+
+    /**
+     * Response Code
+     * Set http response status code.
+     *
+     * @param int $httpResponseCode
+     * @return void
+     */
+    public function sendStatus(int $httpResponseCode)
+    {
+        $this->throwExceptionIfHeaderIsSent();
+        $this->statusCode = $httpResponseCode;
+        $this->isSent = true;
     }
 
     /**
@@ -205,17 +220,18 @@ class Response
      * Send files to the client.
      *
      * @param string $filePath
+     * @param string $fileName
      * @param int $httpResponseCode
      * @return void
      */
-    public function sendFile(string $filePath, int $httpResponseCode = null)
+    public function sendFile(string $filePath, string $fileName = null, int $httpResponseCode = null)
     {
         $this->throwExceptionIfHeaderIsSent();
         $this->responseType = 'download';
         // Set header content type.
         $this->header('Content-Type', 'application/octet-stream');
         $this->header('Content-Description', 'File Transfer');
-        $this->header('Content-Disposition', 'attachment; filename=' . basename($filePath));
+        $this->header('Content-Disposition', 'attachment; filename=' . ($fileName ?? basename($filePath)));
         $this->header('Expires', 0);
         $this->header('Cache-Control', 'must-revalidate');
         $this->header('Pragma', 'public');
@@ -250,8 +266,15 @@ class Response
 
     public function end()
     {
+        if ($this->isEnd == true) {
+            return;
+        }
+
+        $this->isEnd = true;
+
         ob_clean();
         ob_start();
+
         // Set headers
         header('X-Powered-By: unic');
         foreach ($this->headers as $header => $value) {
