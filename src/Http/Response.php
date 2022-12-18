@@ -20,7 +20,7 @@ class Response
     private $isSent = false;
     private $isEnd = false;
     public $locals = null;
-    private $instance = null;
+    private static $instance = null;
 
     private function __construct()
     {
