@@ -5,28 +5,25 @@ namespace Unic\Router;
 class HttpRoute
 {
     private $route = [];
-    private $routeData = [];
 
-    public function __construct($method, string &$route, array &$callbacks, array &$routes)
+    public function __construct(&$method, string &$route, array &$callbacks, array &$routes)
     {
-        $this->route = &$route;
-        $routes = &$routes;
-        $this->routeData = [
+        $this->route = [
             'type' => 'route',
             'callbacks' => $callbacks,
             'route' => [
                 'method' => $method,
-                'path' => $this->route,
+                'path' => $route,
                 'regex' => null,
                 'name' => null,
                 'params' => [],
             ],
         ];
-        $routes[] = &$this->routeData;
+        $routes[] = &$this->route;
     }
 
     public function name(string $name)
     {
-        $this->routeData['route']['name'] = $name;
+        $this->route['route']['name'] = $name;
     }
 }
