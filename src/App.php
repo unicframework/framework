@@ -28,7 +28,7 @@ class App
     private function requestHander(array $compiledRoutes)
     {
         $request = Request::getInstance();
-        $response = new Response::getInstance();
+        $response = Response::getInstance();
 
         $callStack = [];
         foreach ($compiledRoutes as $row) {
