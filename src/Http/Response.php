@@ -318,7 +318,7 @@ class Response
         // Set headers
         foreach ($this->headers as $row) {
             if ($row['type'] == 'remove') {
-                header_remove($header['header'])
+                header_remove($header['header']);
             } else {
                 header("{$row['header']}: {$row['value']}");
             }
