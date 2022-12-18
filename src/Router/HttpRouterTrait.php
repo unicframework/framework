@@ -42,13 +42,17 @@ trait HttpRouterTrait
         foreach ($this->routes as $row) {
             if ($row['type'] == 'route') {
                 if (preg_match_all('/{([^{]*)}/', $row['route']['path'], $matches)) {
-                    //Remove first data from array
-                    array_shift($matches);
+                    $skipped = false;
                     foreach ($matches as $match) {
-                        $params = $match;
+                        // Skip first data from array
+                        if ($skipped == false) {
+                            $skipped = true;
+                        } else {
+                            $params = $match;
+                        }
                     }
                 } else {
-                    $params = array();
+                    $params = [];
                 }
 
                 $row['route']['params'] = $params;
@@ -88,8 +92,9 @@ trait HttpRouterTrait
                 foreach ($params as $key => $value) {
                     if (is_numeric($key)) {
                         $path = preg_replace('/{([^{]*)}/', $value, $path, 1);
+                    } else {
+                        $path = preg_replace("/\{$key\}/", $value, $path);
                     }
-                    $path = preg_replace("/\{$key\}/", $value, $path);
                 }
                 return $path;
             } else {
