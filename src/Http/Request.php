@@ -95,6 +95,9 @@ class Request
         // Get site full url
         $this->fullUrl = $this->scheme . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
+        // Get url parameters
+        $this->params = new stdClass();
+
 
         // Request input
 
@@ -177,12 +180,12 @@ class Request
         if ($this->method != null) {
             return $this->method;
         }
-        $this->method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) : null;
+        $this->method = isset($_SERVER['REQUEST_METHOD']) ? strtolower($_SERVER['REQUEST_METHOD']) : null;
         return $this->method;
     }
 
     public function isMethod(string $method) {
-        return strtoupper($method) == $this->method();
+        return strtolower($method) == $this->method();
     }
 
     public function ip() {
