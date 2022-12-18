@@ -118,17 +118,19 @@ class Request
         $this->isXhr = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest' ? true : false;
 
         // Parse request body
-        if (strtolower($this->contentType) == 'application/x-www-form-urlencoded') {
-            $bodyStringList = explode('&', $this->body);
-            $this->body = new stdClass();
-            foreach ($bodyStringList as $row) {
-                $tmp = explode('=', $row);
-                $this->body->{$tmp[0]} = $tmp[1];
+        if ($this->contentType != null) {
+            if (strtolower($this->contentType) == 'application/x-www-form-urlencoded') {
+                $bodyStringList = explode('&', $this->body);
+                $this->body = new stdClass();
+                foreach ($bodyStringList as $row) {
+                    $tmp = explode('=', $row);
+                    $this->body->{$tmp[0]} = $tmp[1];
+                }
+            } else if (strtolower($this->contentType) == 'application/json') {
+                $this->body = json_decode($this->body ?? '');
+            } else if (preg_match('/multipart\/form-data;/', strtolower($this->contentType))) {
+                $this->body = (object) $_REQUEST;
             }
-        } else if (strtolower($this->contentType) == 'application/json') {
-            $this->body = json_decode($this->body ?? '');
-        } else if (preg_match('/multipart\/form-data;/', strtolower($this->contentType))) {
-            $this->body = (object) $_REQUEST;
         }
     }
 
