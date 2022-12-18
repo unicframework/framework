@@ -22,7 +22,7 @@ class Response
     public $locals = null;
     private $instance = null;
 
-    private public function __construct()
+    private function __construct()
     {
         $this->locals = new stdClass();
     }
