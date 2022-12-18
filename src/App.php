@@ -65,7 +65,7 @@ class App
                     }
                     // Render routes
                     if (!empty($parsedRoute[$requestPath])) {
-                        if (in_array(strtolower($request->method), $parsedRoute[$requestPath]['route']['method'])) {
+                        if (in_array($request->method, $parsedRoute[$requestPath]['route']['method'])) {
                             $request->params = $parsedRoute[$requestPath]['route']['params'];
                             $callbacks = $parsedRoute[$requestPath]['callbacks'];
                         }
