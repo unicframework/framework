@@ -20,10 +20,19 @@ class Response
     private $isSent = false;
     private $isEnd = false;
     public $locals = null;
+    private $instance = null;
 
-    public function __construct()
+    private public function __construct()
     {
         $this->locals = new stdClass();
+    }
+
+    public static function getInstance()
+    {
+        if (self::$instance == null) {
+            self::$instance = new Response();
+        }
+        return self::$instance;
     }
 
     public function headerIsSent()
@@ -37,35 +46,63 @@ class Response
     }
 
     /**
-     * Response Header
+     * Set Header
      * Set http response header.
      *
-     * @param string $header
+     * @param mixed $header
      * @return void
      */
-    public function header(string $header, string $value)
+    public function header($header, string $value = null)
     {
         $this->throwExceptionIfHeaderIsSent();
-        $this->headers[$header] = $value;
+        if (is_array($header)) {
+            foreach ($header as $key => $value) {
+                $this->headers[] = [
+                    'type' => 'set',
+                    'header' => $key,
+                    'value' => $value,
+                ];
+            }
+        } else {
+            $this->headers[] = [
+                'type' => 'set',
+                'header' => $header,
+                'value' => $value,
+            ];
+        }
         return $this;
     }
 
     /**
-     * Response Headers
-     * Set http response headers.
+     * Remove Header
+     * Set http response header.
      *
-     * @param array $headers
+     * @param mixed $header
      * @return void
      */
-    public function headers(array $headers)
+    public function removeHeader($header, string $value = null)
     {
         $this->throwExceptionIfHeaderIsSent();
-        $this->headers = array_merge($this->headers, $headers);
+        if (is_array($header)) {
+            foreach ($header as $key => $value) {
+                $this->headers[] = [
+                    'type' => 'remove',
+                    'header' => $key,
+                    'value' => $value,
+                ];
+            }
+        } else {
+            $this->headers[] = [
+                'type' => 'remove',
+                'header' => $header,
+                'value' => $value,
+            ];
+        }
         return $this;
     }
 
     /**
-     * Response Code
+     * Set Response Code
      * Set http response status code.
      *
      * @param int $httpResponseCode
@@ -275,10 +312,16 @@ class Response
         ob_clean();
         ob_start();
 
+        // Set default headers
+        header('X-Powered-By: unic framework');
+
         // Set headers
-        header('X-Powered-By: unic');
-        foreach ($this->headers as $header => $value) {
-            header("{$header}: {$value}");
+        foreach ($this->headers as $row) {
+            if ($row['type'] == 'remove') {
+                header_remove($header['header'])
+            } else {
+                header("{$row['header']}: {$row['value']}");
+            }
         }
 
         // Set http response code
