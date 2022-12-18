@@ -10,7 +10,7 @@ class UploadedFile
     public $size = null;
     public $error = null;
 
-    public function __constructor(array &$file) {
+    public function __construct(array &$file) {
         $this->name = $file['name'] ?? null;
         $this->type = $file['type'] ?? null;
         $this->tmpName = $file['tmp_name'] ?? null;
