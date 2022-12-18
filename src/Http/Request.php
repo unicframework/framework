@@ -166,7 +166,7 @@ class Request
         if ($this->query != null) {
             return $this->query;
         }
-        $queryStringList = explode('&', $this->queryString() ?? '') : [];
+        $queryStringList = explode('&', $this->queryString() ?? '') ?? [];
         $this->query = new stdClass();
         foreach ($queryStringList as $row) {
             $tmp = explode('=', $row);
