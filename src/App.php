@@ -7,6 +7,8 @@ use ReflectionFunction;
 use Unic\Http\Request;
 use Unic\Http\Response;
 use Unic\Router\HttpRouterTrait;
+use Exception;
+use Throwable;
 
 class App
 {
@@ -92,41 +94,55 @@ class App
 
     private function runRouteMiddleware(Request $request, Response $response, array &$context, $error = null)
     {
-        if (!empty($context['callStack'][$context['index']])) {
-            $callback = $context['callStack'][$context['index']];
-            $context['index']++;
-            if (!is_callable($callback)) {
-                throw new BadMethodCallException();
-            }
-            $function = new ReflectionFunction($callback);
-            $parameters = $function->getParameters();
-            $parameterCount = count($parameters);
-            // Skip route middleware if error is passed
-            if (!empty($error) && $parameterCount <= 3) {
-                return $this->runRouteMiddleware($request, $response, $context, $error);
-            }
-            // Run middleware
-            if ($parameterCount == 2) {
-                return $callback($request, $response);
-            } else if ($parameterCount == 3) {
-                return $callback($request, $response, function ($error = null) use ($request, $response, $context) {
-                    $this->runRouteMiddleware($request, $response, $context, $error);
-                });
-            } else {
-                // Skip error middleware if error is not passed
-                if (empty($error)) {
+        try {
+            if (!empty($context['callStack'][$context['index']])) {
+                $callback = $context['callStack'][$context['index']];
+                $context['index']++;
+                if (!is_callable($callback)) {
+                    throw new BadMethodCallException();
+                }
+                $function = new ReflectionFunction($callback);
+                $parameters = $function->getParameters();
+                $parameterCount = count($parameters);
+                // Skip route middleware if error is passed
+                if (!empty($error) && $parameterCount <= 3) {
                     return $this->runRouteMiddleware($request, $response, $context, $error);
                 }
-                if ($parameterCount == 4) {
-                    return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
+                // Run middleware
+                if ($parameterCount == 2) {
+                    return $callback($request, $response);
+                } else if ($parameterCount == 3) {
+                    return $callback($request, $response, function ($error = null) use ($request, $response, $context) {
                         $this->runRouteMiddleware($request, $response, $context, $error);
                     });
                 } else {
-                    return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
-                        $this->runRouteMiddleware($request, $response, $context, $error);
-                    }, ...array_fill(0, $parameterCount - 4, null));
+                    // Skip error middleware if error is not passed
+                    if (empty($error)) {
+                        return $this->runRouteMiddleware($request, $response, $context, $error);
+                    }
+                    if ($parameterCount == 4) {
+                        return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
+                            $this->runRouteMiddleware($request, $response, $context, $error);
+                        });
+                    } else {
+                        return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
+                            $this->runRouteMiddleware($request, $response, $context, $error);
+                        }, ...array_fill(0, $parameterCount - 4, null));
+                    }
                 }
             }
+        } catch(Throwable $e) {
+            // Run error handler middleware
+            if (!empty($context['callStack'][$context['index']])) {
+                return $this->runRouteMiddleware($request, $response, $context, $e);
+            }
+            throw $e;
+        } catch(Exception $e) {
+            // Run error handler middleware
+            if (!empty($context['callStack'][$context['index']])) {
+                return $this->runRouteMiddleware($request, $response, $context, $e);
+            }
+            throw $e;
         }
     }
 
