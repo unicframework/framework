@@ -5,10 +5,20 @@ namespace Unic;
 class UploadedFileHandler
 {
     /**
-     * Get File
+     * Get all file
+     *
+     * @return array|null
+     */
+    public static function getAll()
+    {
+        return $_FILES ?? null;
+    }
+
+    /**
+     * Get file
      *
      * @param string $name
-     * @return boolean
+     * @return array|null
      */
     public static function get(string $name)
     {
@@ -16,10 +26,10 @@ class UploadedFileHandler
     }
 
     /**
-     * Has File
+     * Has file
      *
      * @param string $name
-     * @return boolean
+     * @return bool
      */
     public static function has(string $name)
     {
@@ -28,17 +38,5 @@ class UploadedFileHandler
         } else {
             return false;
         }
-    }
-
-    /**
-     * Upload files on the server.
-     *
-     * @param string $tmpName
-     * @param string $destination
-     * @return boolean
-     */
-    public static function upload(string $tmpName, string $destination)
-    {
-        return move_uploaded_file($tmpName, $destination);
     }
 }
