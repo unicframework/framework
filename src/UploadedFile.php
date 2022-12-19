@@ -27,8 +27,11 @@ class UploadedFile
      */
     public function save(string $path, string $fileName = null)
     {
+        $path = rtrim(trim($path), '/');
         if ($fileName != null) {
-            $path = dirname($path) . '/' . $fileName;
+            $path = $path . '/' . $fileName;
+        } else {
+            $path = $path . '/' . $this->name;
         }
         return move_uploaded_file($this->tmpName, $path);
     }
