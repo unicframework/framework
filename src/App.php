@@ -43,7 +43,7 @@ class App
                     Config::get('publicDirPath') !== NULL &&
                     Config::get('publicUrl') !== NULL &&
                     preg_match('#^' . Config::get('publicUrl') . '(.*)$#', $requestPath, $matches) &&
-                    file_exists(Config::get('publicDirPath') . '/' . $matches[1])
+                    is_file(Config::get('publicDirPath') . '/' . $matches[1])
                 ) {
                     $filePath = Config::get('publicDirPath') . '/' . $matches[1];
                     $callbacks[] = function (Request $request, Response $response) use ($filePath) {
