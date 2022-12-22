@@ -190,9 +190,11 @@ class Response
         $this->throwExceptionIfHeaderIsSent();
         $this->responseType = 'html';
         $this->header('Content-Type', 'text/html; charset=UTF-8');
-        $this->view = Config::get('views') . '/' . trim($viewPath, '/');
+        $this->view = $viewPath;
         $this->args = $args;
-        $this->args['locals'] = $this->locals;
+        foreach ($this->locals as $key => $value) {
+            $this->args[$key] = $value;
+        }
         $this->isSent = true;
     }
 
@@ -364,11 +366,17 @@ class Response
     }
 }
 
-function renderView(string $viewPath, array $args = [])
+function renderView(string $_self, array $_args = [])
 {
-    // Set variables of array.
-    foreach ($args as $variable => $value) {
-        ${$variable} = $value;
+    if (Config::get('view_engine') == 'twig') {
+        $loader = new \Twig\Loader\FilesystemLoader(Config::get('views'));
+        $twig = new \Twig\Environment($loader, [ 'cache' => Config::get('cache_path') ?? false]);
+        echo $twig->render($_self, $_args);
+    } else {
+        // Set variables of array.
+        foreach ($_args as $variable => $value) {
+            ${$variable} = $value;
+        }
+        require_once(Config::get('views') . '/' . trim($_self, '/'));
     }
-    require_once($viewPath);
 }
