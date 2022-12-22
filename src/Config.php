@@ -14,9 +14,13 @@ class Config
     public static function set(string $config, $value)
     {
         $config = strtolower($config);
-        if (in_array($config, ['views', 'public'])) {
-            $value = rtrim($value, '/');
+        // Trim special characters
+        if ($config == 'views') {
+            $value = rtrim(trim($value), '/');
         }
-        self::$config[$config] = trim($value);
+        if ($config == 'view_engine') {
+          $value = trim($value);
+        }
+        self::$config[$config] = $value;
     }
 }
