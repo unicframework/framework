@@ -2,6 +2,8 @@
 
 namespace Unic;
 
+use Exception;
+
 class Config
 {
     private static $config = [];
@@ -23,9 +25,9 @@ class Config
         }
         if ($config == 'cache_path') {
             $value = rtrim(trim($value), '/');
-            if (!file_exists($value) || !is_file($value)) {
+            if (!is_dir($value)) {
                 mkdir($value, 0777, true);
-            } else {
+            } else if (is_file($value)) {
                 throw new Exception('Invalid cache dir');
             }
         }
