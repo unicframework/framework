@@ -19,7 +19,15 @@ class Config
             $value = rtrim(trim($value), '/');
         }
         if ($config == 'view_engine') {
-          $value = trim($value);
+            $value = strtolower(trim($value));
+        }
+        if ($config == 'cache_path') {
+            $value = rtrim(trim($value), '/');
+            if (!file_exists($value) || !is_file($value)) {
+                mkdir($value, 0777, true);
+            } else {
+                throw new Exception('Invalid cache dir');
+            }
         }
         self::$config[$config] = $value;
     }
