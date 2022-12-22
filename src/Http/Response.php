@@ -17,7 +17,7 @@ class Response
     private $file = null;
     private $view = null;
     private $args = null;
-    private $isSent = false;
+    private $isWritable = true;
     private $isEnd = false;
     public $locals = null;
     private static $instance = null;
@@ -37,12 +37,12 @@ class Response
 
     public function headerIsSent()
     {
-        return $this->isSent;
+        return !$this->isWritable;
     }
 
     private function throwExceptionIfHeaderIsSent()
     {
-        return $this->isSent == true ? throw new Exception('Header is already sent') : false;
+        return $this->isWritable == false ? throw new Exception('Header is already sent') : false;
     }
 
     /**
@@ -126,7 +126,7 @@ class Response
     {
         $this->throwExceptionIfHeaderIsSent();
         $this->statusCode = $httpResponseCode;
-        $this->isSent = true;
+        $this->isWritable = false;
     }
 
     /**
@@ -156,7 +156,7 @@ class Response
         }
         $this->targetUrl = $url;
         $this->statusCode = $httpResponseCode ?? $this->statusCode ?? 302;
-        $this->isSent = true;
+        $this->isWritable = false;
     }
 
     /**
@@ -174,7 +174,7 @@ class Response
         $this->header('Content-Type', 'text/html; charset=UTF-8');
         $this->content = $string;
         $this->statusCode = $httpResponseCode ?? $this->statusCode ?? 200;
-        $this->isSent = true;
+        $this->isWritable = false;
     }
 
     /**
@@ -195,7 +195,7 @@ class Response
         foreach ($this->locals as $key => $value) {
             $this->args[$key] = $value;
         }
-        $this->isSent = true;
+        $this->isWritable = false;
     }
 
     /**
@@ -225,7 +225,7 @@ class Response
         $this->header('Content-Type', 'application/json; charset=UTF-8');
         $this->content = $data;
         $this->statusCode = $httpResponseCode ?? $this->statusCode ?? 200;
-        $this->isSent = true;
+        $this->isWritable = false;
     }
 
     /**
@@ -251,7 +251,7 @@ class Response
 
         $this->file = $filePath;
         $this->statusCode = $httpResponseCode ?? $this->statusCode ?? 200;
-        $this->isSent = true;
+        $this->isWritable = false;
     }
 
     /**
@@ -278,7 +278,7 @@ class Response
 
         $this->file = $filePath;
         $this->statusCode = $httpResponseCode ?? $this->statusCode ?? 200;
-        $this->isSent = true;
+        $this->isWritable = false;
     }
 
     /**
