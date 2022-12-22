@@ -22,7 +22,8 @@ class App
     public function static(string $url, string $path)
     {
         Config::set('publicDirPath', rtrim(trim($path), '/'));
-        Config::set('publicUrl', trim(trim($url), '/'));
+        $url = trim(trim($url), '/');
+        Config::set('publicUrl', empty($url) ? '' : $url . '/');
     }
 
     private function requestHander(array $compiledRoutes)
@@ -41,7 +42,7 @@ class App
                 if (
                     Config::get('publicDirPath') !== NULL &&
                     Config::get('publicUrl') !== NULL &&
-                    preg_match('#^' . Config::get('publicUrl') . '/(.*)$#', $requestPath, $matches) &&
+                    preg_match('#^' . Config::get('publicUrl') . '(.*)$#', $requestPath, $matches) &&
                     file_exists(Config::get('publicDirPath') . '/' . $matches[1])
                 ) {
                     $filePath = Config::get('publicDirPath') . '/' . $matches[1];
