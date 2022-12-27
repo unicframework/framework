@@ -10,7 +10,6 @@ trait HttpRouterTrait
 {
     private $routes = [];
     private static $namedRoutes = [];
-    private static $compiledRoutes = [];
     private $supportedMethods = [
         'checkout',
         'copy',
@@ -37,48 +36,9 @@ trait HttpRouterTrait
     ];
     private $prefix = null;
 
-    protected function compile()
-    {
-        foreach ($this->routes as $row) {
-            if ($row['type'] == 'route') {
-                if (preg_match_all('/{([^{]*)}/', $row['route']['path'], $matches)) {
-                    $skipped = false;
-                    foreach ($matches as $match) {
-                        // Skip first data from array
-                        if ($skipped == false) {
-                            $skipped = true;
-                        } else {
-                            $params = $match;
-                        }
-                    }
-                } else {
-                    $params = [];
-                }
-
-                $row['route']['params'] = $params;
-                $row['route']['regex'] = preg_replace('/{([^{]*)}/', '([^/]+)', $row['route']['path']);
-
-                self::$compiledRoutes[] = $row;
-                if (!empty($row['route']['name'])) {
-                    self::$namedRoutes[$row['route']['name']] = [
-                        'path' => $row['route']['path'],
-                        'params' => $row['route']['params'],
-                    ];
-                }
-            } else {
-                self::$compiledRoutes[] = $row;
-            }
-        }
-    }
-
-    protected function getRoute()
+    protected function getRoutes()
     {
         return $this->routes;
-    }
-
-    protected function getCompiledRoute()
-    {
-        return self::$compiledRoutes;
     }
 
     public static function route(string $name, array $params = [])

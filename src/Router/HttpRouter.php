@@ -8,7 +8,8 @@ class HttpRouter
 {
     use HttpRouterTrait;
 
-    public function routes() {
-        return $this->getRoute();
+    public function routes()
+    {
+        return $this->getRoutes();
     }
 }
