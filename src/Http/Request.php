@@ -109,7 +109,6 @@ class Request
 
         // Get cookie data
         $this->cookies = new Cookie();
-
     }
 
     public static function getInstance()
@@ -140,18 +139,18 @@ class Request
         $this->body = new stdClass();
         if ($contentType != null) {
             if ($contentType == 'application/x-www-form-urlencoded') {
-                $bodyStringList = explode('&', $this->body);
+                $bodyStringList = explode('&', $this->rawBody());
                 foreach ($bodyStringList as $row) {
                     $tmp = explode('=', $row);
                     $this->body->{$tmp[0]} = $tmp[1] ?? null;
                 }
             } else if ($contentType == 'application/json') {
-                $this->body = json_decode($this->body() ?? '');
+                $this->body = json_decode($this->rawBody() ?? '');
             } else if (preg_match('/multipart\/form-data;/', $contentType)) {
                 $this->body = (object) $_REQUEST;
             }
         }
-      return $this->body;
+        return $this->body;
     }
 
     public function queryString()
@@ -175,7 +174,8 @@ class Request
         return $this->query;
     }
 
-    public function method() {
+    public function method()
+    {
         // Get request method get, post, put, delete
         if ($this->method != null) {
             return $this->method;
@@ -184,11 +184,13 @@ class Request
         return $this->method;
     }
 
-    public function isMethod(string $method) {
+    public function isMethod(string $method)
+    {
         return strtolower($method) == $this->method();
     }
 
-    public function ip() {
+    public function ip()
+    {
         // Get user ip
         return $_SERVER['SERVER_ADDR'] ?? $_SERVER['REMOTE_ADDR'] ?? null;
     }

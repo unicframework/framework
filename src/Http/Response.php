@@ -6,6 +6,8 @@ use COM;
 use Exception;
 use stdClass;
 use Unic\Config;
+use Unic\Cookie;
+use Unic\Session;
 
 class Response
 {
@@ -374,7 +376,24 @@ function renderView(string $_self, array $_args = [])
 {
     if (Config::get('view_engine') == 'twig') {
         $loader = new \Twig\Loader\FilesystemLoader(Config::get('views'));
-        $twig = new \Twig\Environment($loader, [ 'cache' => Config::get('cache_path') ?? false]);
+        $twig = new \Twig\Environment($loader, Config::get('view_engine_option') ?? []);
+        $twig->addGlobal('session', new Session);
+        $twig->addGlobal('cookie', new Cookie);
+        $twig->addFunction(new \Twig\TwigFunction('route', function ($path) {
+            return route($path);
+        }));
+        $twig->addFunction(new \Twig\TwigFunction('base_url', function ($path) {
+            return base_url($path);
+        }));
+        $twig->addFunction(new \Twig\TwigFunction('url', function ($path) {
+            return url($path);
+        }));
+        $twig->addFunction(new \Twig\TwigFunction('asset', function ($path) {
+            return asset($path);
+        }));
+        $twig->addFunction(new \Twig\TwigFunction('base_path', function ($path) {
+            return base_path($path);
+        }));
         echo $twig->render($_self, $_args);
     } else {
         // Set variables of array.
