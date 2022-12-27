@@ -14,6 +14,8 @@ class App
 {
     use HttpRouterTrait;
 
+    $isRouteMatched = false;
+
     public function set(string $config, $value, array $options = [])
     {
         Config::set($config, $value, $options);
@@ -97,6 +99,7 @@ class App
                     if (in_array($request->method(), $parsedRoute[$request->path]['route']['method'])) {
                         $request->params = $parsedRoute[$request->path]['route']['params'];
                         $callbacks = $parsedRoute[$request->path]['callbacks'];
+                        $this->isRouteMatched = true;
                     }
                 }
             }
@@ -179,7 +182,7 @@ class App
     {
         if ($response->headerIsSent()) {
             return $response->end();
-        } else {
+        } else if ($this->isRouteMatched == false) {
             $response->send('404 Page Not Found', 404);
             return $response->end();
         }
