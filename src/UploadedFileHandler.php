@@ -8,7 +8,8 @@ class UploadedFileHandler
 {
     private static $files = [];
 
-    private static function parseFiles() {
+    private static function parseFiles()
+    {
         if (!empty(self::$files)) {
             return self::$files;
         }

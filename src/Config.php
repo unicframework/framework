@@ -13,7 +13,7 @@ class Config
         return self::$config[$config] ?? null;
     }
 
-    public static function set(string $config, $value)
+    public static function set(string $config, $value, array $options = [])
     {
         $config = strtolower($config);
         // Trim special characters
@@ -32,5 +32,6 @@ class Config
             }
         }
         self::$config[$config] = $value;
+        self::$config[$config . '_option'] = $options;
     }
 }

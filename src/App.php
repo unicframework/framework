@@ -14,65 +14,93 @@ class App
 {
     use HttpRouterTrait;
 
-    public function set(string $config, $value)
+    public function set(string $config, $value, array $options = [])
     {
-        Config::set($config, $value);
+        Config::set($config, $value, $options);
     }
 
-    public function static(string $url, string $path)
+    public function static(string $url, string $path, array $options = [])
     {
         Config::set('publicDirPath', rtrim(trim($path), '/'));
         $url = trim(trim($url), '/');
         Config::set('publicUrl', empty($url) ? '' : $url . '/');
+        return function (Request $req, Response $res, $next) {
+            // Render static file
+            if (
+                Config::get('publicDirPath') !== NULL &&
+                Config::get('publicUrl') !== NULL &&
+                preg_match('#^' . Config::get('publicUrl') . '(.*)$#', $req->path, $matches) &&
+                is_file(Config::get('publicDirPath') . '/' . $matches[1])
+            ) {
+                $filePath = Config::get('publicDirPath') . '/' . $matches[1];
+                $res->file($filePath);
+            } else {
+                $next();
+            }
+        };
     }
 
-    private function requestHander(array $compiledRoutes)
+    private function requestHander()
     {
         $request = Request::getInstance();
         $response = Response::getInstance();
 
         $callStack = [];
-        foreach ($compiledRoutes as $row) {
+        foreach ($this->routes as $row) {
+            // Compiler routes
+            if ($row['type'] == 'route') {
+                if (preg_match_all('/{([^{]*)}/', $row['route']['path'], $matches)) {
+                    $skipped = false;
+                    foreach ($matches as $match) {
+                        // Skip first data from array
+                        if ($skipped == false) {
+                            $skipped = true;
+                        } else {
+                            $params = $match;
+                        }
+                    }
+                } else {
+                    $params = [];
+                }
+
+                $row['route']['params'] = $params;
+                $row['route']['regex'] = preg_replace('/{([^{]*)}/', '([^/]+)', $row['route']['path']);
+
+                if (!empty($row['route']['name'])) {
+                    self::$namedRoutes[$row['route']['name']] = [
+                        'path' => $row['route']['path'],
+                        'params' => $row['route']['params'],
+                    ];
+                }
+            }
+
+            // Add callbacks into callstack
             $callbacks = [];
             if ($row['type'] == 'middleware') {
                 $callbacks = $row['callbacks'];
             } else {
-                $requestPath = $request->path;
-                // Render static files
-                if (
-                    Config::get('publicDirPath') !== NULL &&
-                    Config::get('publicUrl') !== NULL &&
-                    preg_match('#^' . Config::get('publicUrl') . '(.*)$#', $requestPath, $matches) &&
-                    is_file(Config::get('publicDirPath') . '/' . $matches[1])
-                ) {
-                    $filePath = Config::get('publicDirPath') . '/' . $matches[1];
-                    $callbacks[] = function (Request $request, Response $response) use ($filePath) {
-                        $response->file($filePath);
-                    };
-                } else {
-                    $parsedRoute = [];
-                    // Parse routes
-                    if (preg_match("#^{$row['route']['regex']}$#", $requestPath, $matches)) {
-                        $params = array();
-                        $i = 1;
-                        foreach ($row['route']['params'] as $param) {
-                            $params[$param] = $matches[$i];
-                            $i++;
-                        }
-                        $row['route']['params'] = (object) $params;
-                        $parsedRoute[$matches[0]] = $row;
-                    } else {
-                        $parsedRoute[$row['route']['path']] = $row;
+                $parsedRoute = [];
+                // Parse route path parameters
+                if (preg_match("#^{$row['route']['regex']}$#", $request->path, $matches)) {
+                    $params = array();
+                    $i = 1;
+                    foreach ($row['route']['params'] as $param) {
+                        $params[$param] = $matches[$i];
+                        $i++;
                     }
-                    // Render routes
-                    if (!empty($parsedRoute[$requestPath])) {
-                        if (in_array($request->method(), $parsedRoute[$requestPath]['route']['method'])) {
-                            $request->params = $parsedRoute[$requestPath]['route']['params'];
-                            $callbacks = $parsedRoute[$requestPath]['callbacks'];
-                        }
+                    $row['route']['params'] = (object) $params;
+                    $parsedRoute[$matches[0]] = $row;
+                } else {
+                    $parsedRoute[$row['route']['path']] = $row;
+                }
+                if (!empty($parsedRoute[$request->path])) {
+                    if (in_array($request->method(), $parsedRoute[$request->path]['route']['method'])) {
+                        $request->params = $parsedRoute[$request->path]['route']['params'];
+                        $callbacks = $parsedRoute[$request->path]['callbacks'];
                     }
                 }
             }
+            // Add callbacks to callstack
             if (!empty($callbacks)) {
                 foreach ($callbacks as $callback) {
                     $callStack[] = $callback;
@@ -132,13 +160,13 @@ class App
                     }
                 }
             }
-        } catch(Throwable $e) {
+        } catch (Throwable $e) {
             // Run error handler middleware
             if (!empty($context['callStack'][$context['index']])) {
                 return $this->runRouteMiddleware($request, $response, $context, $e);
             }
             throw $e;
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             // Run error handler middleware
             if (!empty($context['callStack'][$context['index']])) {
                 return $this->runRouteMiddleware($request, $response, $context, $e);
@@ -159,8 +187,6 @@ class App
 
     public function start()
     {
-        // Compile routes
-        $this->compile();
-        $this->requestHander($this->getCompiledRoute());
+        $this->requestHander();
     }
 }

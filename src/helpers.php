@@ -34,7 +34,7 @@ if (!function_exists('url')) {
 if (!function_exists('asset')) {
     function asset(string $path = '')
     {
-        $staticPath = Config::get('publicUrl') . '/' . ltrim($path, '/');
+        $staticPath = trim(Config::get('publicUrl'), '/') . '/' . ltrim($path, '/');
         return Request::getInstance()->baseUrl . '/' . ltrim($staticPath, '/');
     }
 }
