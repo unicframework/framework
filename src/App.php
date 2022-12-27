@@ -161,6 +161,6 @@ class App
     {
         // Compile routes
         $this->compile();
-        $this->requestHander($this->getCompiledRoute(), $this->getRoute());
+        $this->requestHander($this->getCompiledRoute());
     }
 }
