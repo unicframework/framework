@@ -42,7 +42,11 @@ class Response
 
     private function throwExceptionIfHeaderIsSent()
     {
-        return $this->isWritable == false ? throw new Exception('Header is already sent') : false;
+        if ($this->isWritable == false) {
+            throw new Exception('Header is already sent');
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -320,7 +324,7 @@ class Response
         // Set headers
         foreach ($this->headers as $row) {
             if ($row['type'] == 'remove') {
-                header_remove($header['header']);
+                header_remove($row['header']);
             } else {
                 header("{$row['header']}: {$row['value']}");
             }
