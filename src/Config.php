@@ -32,6 +32,8 @@ class Config
             }
         }
         self::$config[$config] = $value;
-        self::$config[$config . '_option'] = $options;
+        if (!empty($options)) {
+            self::$config[$config . '_option'] = $options;
+        }
     }
 }
