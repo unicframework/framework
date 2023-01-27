@@ -249,7 +249,7 @@ class Response
         $this->responseType = 'file';
         // Set header content type.
         if ($mimeType != null) {
-            $this->header('Content-Type', $this->mimeType);
+            $this->header('Content-Type', $mimeType);
         } else {
             $this->header('Content-Type', mime_content_type($filePath));
         }
