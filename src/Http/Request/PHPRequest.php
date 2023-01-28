@@ -15,7 +15,6 @@ class PHPRequest implements IRequest
     public $method = null;
     public $protocol = null;
     public $accept = null;
-    public $charset = null;
     public $language = null;
     public $encoding = null;
     public $contentType = null;
@@ -54,14 +53,6 @@ class PHPRequest implements IRequest
         $this->method = isset($this->request['REQUEST_METHOD']) ? strtoupper($this->request['REQUEST_METHOD']) : null;
         $this->protocol = $this->request['SERVER_PROTOCOL'] ?? null;
         $this->accept = $this->request['HTTP_ACCEPT'] ?? null;
-        $charset = explode($this->accept, ',');
-        foreach ($charset as $row) {
-            $tmp = explode($row, '=');
-            if (strtolower(trim($tmp[0] ?? '')) === 'charset') {
-                $this->charset = $tmp[1] ?? null;
-                break;
-            }
-        }
         $this->language = $this->request['HTTP_ACCEPT_LANGUAGE'] ?? null;
         $this->encoding = $this->request['HTTP_ACCEPT_ENCODING'] ?? null;
         $this->contentType = $this->request['CONTENT_TYPE'] ?? $this->request['HTTP_CONTENT_TYPE'] ?? null;
@@ -113,15 +104,21 @@ class PHPRequest implements IRequest
             $this->body = new stdClass();
             if ($contentType != null) {
                 if ($contentType == 'application/x-www-form-urlencoded') {
-                    $bodyStringList = explode('&', $this->rawBody());
+                    $bodyStringList = explode('&', $this->rawBody() ?? '');
                     foreach ($bodyStringList as $row) {
-                        $tmp = explode('=', $row);
-                        $this->body->{$tmp[0]} = $tmp[1] ?? null;
+                        $tmp = explode('=', $row, 2);
+                        if (isset($tmp[0]) && $tmp[0] !== '') {
+                            $this->body->{$tmp[0]} = $tmp[1] ?? null;
+                        }
                     }
                 } else if ($contentType == 'application/json') {
                     $this->body = json_decode($this->rawBody() ?? '');
                 } else if (preg_match('/multipart\/form-data;/', $contentType)) {
-                    $this->body = (object) $_REQUEST;
+                    if (strtoupper($this->method()) === 'POST') {
+                        $this->body = (object) $_POST;
+                    } else {
+                        $this->body = (object) $_REQUEST;
+                    }
                 }
             }
         }
@@ -139,12 +136,7 @@ class PHPRequest implements IRequest
     public function query(string $key = null)
     {
         if ($this->query === null) {
-            $queryStringList = explode('&', $this->queryString() ?? '') ?? [];
-            $this->query = new stdClass();
-            foreach ($queryStringList as $row) {
-                $tmp = explode('=', $row);
-                $this->query->{$tmp[0]} = $tmp[1];
-            }
+            $this->query = (object) $_GET;
         }
         if ($key !== null) {
             return $this->query->{$key} ?? null;
