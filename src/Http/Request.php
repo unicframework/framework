@@ -14,7 +14,6 @@ class Request implements IRequest
     public $method = null;
     public $protocol = null;
     public $accept = null;
-    public $charset = null;
     public $language = null;
     public $encoding = null;
     public $contentType = null;
