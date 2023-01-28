@@ -49,7 +49,6 @@ class Request implements IRequest
         $this->method = $this->request->method;
         $this->protocol = $this->request->protocol;
         $this->accept = $this->request->accept;
-        $this->charset = $this->request->charset;
         $this->language = $this->request->language;
         $this->encoding = $this->request->encoding;
         $this->contentType = $this->request->contentType;
