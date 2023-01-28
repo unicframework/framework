@@ -33,7 +33,7 @@ trait MiddlewareTrait
                 is_file($publicDirPath . '/' . $matches[1])
             ) {
                 $filePath = $publicDirPath . '/' . $matches[1];
-                $res->status(304)->file($filePath);
+                $res->file($filePath);
             } else {
                 $next();
             }
