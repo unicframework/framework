@@ -25,6 +25,7 @@ trait HttpRouterTrait
         'OPTIONS',
         'PATCH',
         'POST',
+        'PROPFIND',
         'PURGE',
         'PUT',
         'REPORT',
@@ -33,6 +34,7 @@ trait HttpRouterTrait
         'TRACE',
         'UNLOCK',
         'UNSUBSCRIBE',
+        'VIEW',
     ];
     private $prefix = null;
 
@@ -217,6 +219,11 @@ trait HttpRouterTrait
         return $this->setRoute('POST', $route, $callback);
     }
 
+    public function propfind(string $route, ...$callback)
+    {
+        return $this->setRoute('PROPFIND', $route, $callback);
+    }
+
     public function purge(string $route, ...$callback)
     {
         return $this->setRoute('PURGE', $route, $callback);
@@ -255,6 +262,11 @@ trait HttpRouterTrait
     public function unsubscribe(string $route, ...$callback)
     {
         return $this->setRoute('UNSUBSCRIBE', $route, $callback);
+    }
+
+    public function view(string $route, ...$callback)
+    {
+        return $this->setRoute('VIEW', $route, $callback);
     }
 
     public function any(array $methods, string $route, ...$callback)
