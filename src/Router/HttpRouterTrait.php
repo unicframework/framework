@@ -11,37 +11,32 @@ trait HttpRouterTrait
     private $routes = [];
     private static $namedRoutes = [];
     private $supportedMethods = [
-        'checkout',
-        'copy',
-        'delete',
-        'get',
-        'head',
-        'lock',
-        'merge',
-        'mkactivity',
-        'mkcol',
-        'move',
-        'notify',
-        'options',
-        'patch',
-        'post',
-        'purge',
-        'put',
-        'report',
-        'search',
-        'subscribe',
-        'trace',
-        'unlock',
-        'unsubscribe',
+        'CHECKOUT',
+        'COPY',
+        'DELETE',
+        'GET',
+        'HEAD',
+        'LOCK',
+        'MERGE',
+        'MKACTIVITY',
+        'MKCOL',
+        'MOVE',
+        'NOTIFY',
+        'OPTIONS',
+        'PATCH',
+        'POST',
+        'PURGE',
+        'PUT',
+        'REPORT',
+        'SEARCH',
+        'SUBSCRIBE',
+        'TRACE',
+        'UNLOCK',
+        'UNSUBSCRIBE',
     ];
     private $prefix = null;
 
-    protected function getRoutes()
-    {
-        return $this->routes;
-    }
-
-    public static function route(string $name, array $params = [])
+    private function getNamedRoute(string $name, array $params = [])
     {
         if (isset(self::$namedRoutes[$name])) {
             if (!empty(self::$namedRoutes[$name]['params'])) {
@@ -58,7 +53,7 @@ trait HttpRouterTrait
                 }
                 return $path;
             } else {
-                return self::$namedRoutes[$name]['path'];
+                return !empty(self::$namedRoutes[$name]['path']) ? self::$namedRoutes[$name]['path'] : '/';
             }
         }
         return null;
@@ -77,7 +72,7 @@ trait HttpRouterTrait
         if (is_array($method)) {
             foreach ($method as $row) {
                 if (in_array($row, $this->supportedMethods) == false) {
-                    throw new Exception('Invalid http method');
+                    throw new Exception('Error: ' . $row . ' invalid http method');
                 }
             }
         } else {
@@ -138,7 +133,7 @@ trait HttpRouterTrait
     {
         $totalArgs = count($arguments);
         if ($totalArgs == 2) {
-            if (gettype($arguments[0]) == 'string' && $arguments[1] instanceof HttpRouter) {
+            if (gettype($arguments[0]) === 'string' && $arguments[1] instanceof HttpRouter) {
                 $this->mergeGroupedRoutes($arguments[0], $arguments[1]->routes());
             } else {
                 $this->setMiddleware('middleware', $arguments);
@@ -154,118 +149,118 @@ trait HttpRouterTrait
 
     public function checkout(string $route, ...$callback)
     {
-        return $this->setRoute('checkout', $route, $callback);
+        return $this->setRoute('CHECKOUT', $route, $callback);
     }
 
     public function copy(string $route, ...$callback)
     {
-        return $this->setRoute('copy', $route, $callback);
+        return $this->setRoute('COPY', $route, $callback);
     }
 
     public function delete(string $route, ...$callback)
     {
-        return $this->setRoute('delete', $route, $callback);
+        return $this->setRoute('DELETE', $route, $callback);
     }
 
     public function get(string $route, ...$callback)
     {
-        return $this->setRoute('get', $route, $callback);
+        return $this->setRoute('GET', $route, $callback);
     }
 
     public function head(string $route, ...$callback)
     {
-        return $this->setRoute('head', $route, $callback);
+        return $this->setRoute('HEAD', $route, $callback);
     }
 
     public function lock(string $route, ...$callback)
     {
-        return $this->setRoute('lock', $route, $callback);
+        return $this->setRoute('LOCK', $route, $callback);
     }
 
     public function merge(string $route, ...$callback)
     {
-        return $this->setRoute('merge', $route, $callback);
+        return $this->setRoute('MERGE', $route, $callback);
     }
 
     public function mkactivity(string $route, ...$callback)
     {
-        return $this->setRoute('mkactivity', $route, $callback);
+        return $this->setRoute('MKACTIVITY', $route, $callback);
     }
 
     public function mkcol(string $route, ...$callback)
     {
-        return $this->setRoute('mkcol', $route, $callback);
+        return $this->setRoute('MKCOL', $route, $callback);
     }
 
     public function move(string $route, ...$callback)
     {
-        return $this->setRoute('move', $route, $callback);
+        return $this->setRoute('MOVE', $route, $callback);
     }
 
     public function notify(string $route, ...$callback)
     {
-        return $this->setRoute('notify', $route, $callback);
+        return $this->setRoute('NOTIFY', $route, $callback);
     }
 
     public function options(string $route, ...$callback)
     {
-        return $this->setRoute('options', $route, $callback);
+        return $this->setRoute('OPTIONS', $route, $callback);
     }
 
     public function patch(string $route, ...$callback)
     {
-        return $this->setRoute('patch', $route, $callback);
+        return $this->setRoute('PATCH', $route, $callback);
     }
 
     public function post(string $route, ...$callback)
     {
-        return $this->setRoute('post', $route, $callback);
+        return $this->setRoute('POST', $route, $callback);
     }
 
     public function purge(string $route, ...$callback)
     {
-        return $this->setRoute('purge', $route, $callback);
+        return $this->setRoute('PURGE', $route, $callback);
     }
 
     public function put(string $route, ...$callback)
     {
-        return $this->setRoute('put', $route, $callback);
+        return $this->setRoute('PUT', $route, $callback);
     }
 
     public function report(string $route, ...$callback)
     {
-        return $this->setRoute('report', $route, $callback);
+        return $this->setRoute('REPORT', $route, $callback);
     }
 
     public function search(string $route, ...$callback)
     {
-        return $this->setRoute('search', $route, $callback);
+        return $this->setRoute('SEARCH', $route, $callback);
     }
 
     public function subscribe(string $route, ...$callback)
     {
-        return $this->setRoute('subscribe', $route, $callback);
+        return $this->setRoute('SUBSCRIBE', $route, $callback);
     }
 
     public function trace(string $route, ...$callback)
     {
-        return $this->setRoute('trace', $route, $callback);
+        return $this->setRoute('TRACE', $route, $callback);
     }
 
     public function unlock(string $route, ...$callback)
     {
-        return $this->setRoute('unlock', $route, $callback);
+        return $this->setRoute('UNLOCK', $route, $callback);
     }
 
     public function unsubscribe(string $route, ...$callback)
     {
-        return $this->setRoute('unsubscribe', $route, $callback);
+        return $this->setRoute('UNSUBSCRIBE', $route, $callback);
     }
 
     public function any(array $methods, string $route, ...$callback)
     {
         return $this->setRoute(array_map(function ($e) {
-            return strtolower(trim($e));
+            return strtoupper(trim($e));
         }, $methods), $route, $callback);
     }
 

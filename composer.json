@@ -10,25 +10,35 @@
         "mvc framework"
     ],
     "homepage": "https://unicframework.github.io/docs",
+    "support": {
+        "issues": "https://github.com/unicframework/framework/issues",
+        "source": "https://github.com/unicframework/framework"
+    },
     "license": "MIT",
     "authors": [
         {
             "name": "Rajkumar Dusad",
-            "homepage": "https://github.com/rajkumardusad",
-            "role": "Developer"
+            "homepage": "https://github.com/rajkumardusad"
         }
     ],
     "autoload": {
-        "files": [
-            "src/helpers.php"
-        ],
         "psr-4": {
             "Unic\\": "src/"
         }
     },
     "require": {
-        "php": ">=5.6"
+        "php": ">=7.4"
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    "scripts": {
+        "test": "./vendor/bin/phpunit"
+    },
+    "scripts-descriptions": {
+        "test": "Run all test cases."
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "guzzlehttp/guzzle": "^7.5"
+    }
 }

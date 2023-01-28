@@ -10,6 +10,6 @@ class HttpRouter
 
     public function routes()
     {
-        return $this->getRoutes();
+        return $this->routes;
     }
 }

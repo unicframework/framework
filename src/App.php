@@ -7,45 +7,47 @@ use ReflectionFunction;
 use Unic\Http\Request;
 use Unic\Http\Response;
 use Unic\Router\HttpRouterTrait;
+use Unic\Middleware\MiddlewareTrait;
+use Unic\Server\ServerTrait;
 use Exception;
+use stdClass;
 use Throwable;
 
 class App
 {
-    use HttpRouterTrait;
-
-    private $pageNotFound = true;
-
-    public function set(string $config, $value, array $options = [])
-    {
-        Config::set($config, $value, $options);
+    use HttpRouterTrait,
+        MiddlewareTrait,
+        ServerTrait,
+        Helpers {
+        HttpRouterTrait::get as protected getMethod;
     }
 
-    public function static(string $url, string $path, array $options = [])
+    public $config = null;
+    public $locals = null;
+    private $context = [];
+
+    public function __construct()
     {
-        Config::set('publicDirPath', rtrim(trim($path), '/'));
-        $url = trim(trim($url), '/');
-        Config::set('publicUrl', empty($url) ? '' : $url . '/');
-        return function (Request $req, Response $res, $next) {
-            // Render static file
-            if (
-                Config::get('publicDirPath') !== NULL &&
-                Config::get('publicUrl') !== NULL &&
-                preg_match('#^' . Config::get('publicUrl') . '(.*)$#', $req->path, $matches) &&
-                is_file(Config::get('publicDirPath') . '/' . $matches[1])
-            ) {
-                $filePath = Config::get('publicDirPath') . '/' . $matches[1];
-                $res->file($filePath);
-            } else {
-                $next();
-            }
-        };
+        $this->locals = new stdClass();
+        $this->config = new Settings();
     }
 
-    private function requestHander()
+    public function set($config, $value = null, array $options = [])
     {
-        $request = Request::getInstance();
-        $response = Response::getInstance();
+        $this->config->set($config, $value, $options);
+    }
+
+    public function get(string $route, ...$callback)
+    {
+        if (func_num_args() === 1) {
+            return $this->config->get($route);
+        }
+        return $this->getMethod($route, ...$callback);
+    }
+
+    private function dispatch(Request &$request, Response &$response)
+    {
+        $routeNotMatched = true;
 
         $callStack = [];
         foreach ($this->routes as $row) {
@@ -96,10 +98,10 @@ class App
                     $parsedRoute[$row['route']['path']] = $row;
                 }
                 if (!empty($parsedRoute[$request->path])) {
-                    if (in_array($request->method(), $parsedRoute[$request->path]['route']['method'])) {
+                    if (in_array($request->method, $parsedRoute[$request->path]['route']['method'])) {
                         $request->params = $parsedRoute[$request->path]['route']['params'];
                         $callbacks = $parsedRoute[$request->path]['callbacks'];
-                        $this->pageNotFound = false;
+                        $routeNotMatched = false;
                     }
                 }
             }
@@ -116,15 +118,18 @@ class App
             'callStack' => $callStack,
             'index' => 0,
         ];
-        $this->runRouteMiddleware($request, $response, $context);
+        $this->runMiddleware($request, $response, $context);
 
-        if ($response instanceof Response) {
-            // Send response
-            $this->sendResponse($response);
+        // Page not found
+        if ($routeNotMatched == true && $response instanceof Response && $response->headerSent() === false) {
+            $response->send('404 Page Not Found', 404);
+            $response->end();
         }
+        $request = null;
+        $response = null;
     }
 
-    private function runRouteMiddleware(Request $request, Response $response, array &$context, $error = null)
+    private function runMiddleware(Request $request, Response $response, array &$context, $error = null)
     {
         try {
             if (!empty($context['callStack'][$context['index']])) {
@@ -137,28 +142,28 @@ class App
                 $parameters = $function->getParameters();
                 $parameterCount = count($parameters);
                 // Skip route middleware if error is passed
-                if (!empty($error) && $parameterCount <= 3) {
-                    return $this->runRouteMiddleware($request, $response, $context, $error);
+                if ($error !== null && $parameterCount <= 3) {
+                    return $this->runMiddleware($request, $response, $context, $error);
                 }
                 // Run middleware
                 if ($parameterCount == 2) {
                     return $callback($request, $response);
                 } else if ($parameterCount == 3) {
                     return $callback($request, $response, function ($error = null) use ($request, $response, $context) {
-                        $this->runRouteMiddleware($request, $response, $context, $error);
+                        $this->runMiddleware($request, $response, $context, $error);
                     });
                 } else {
                     // Skip error middleware if error is not passed
-                    if (empty($error)) {
-                        return $this->runRouteMiddleware($request, $response, $context, $error);
+                    if ($error === null) {
+                        return $this->runMiddleware($request, $response, $context, $error);
                     }
                     if ($parameterCount == 4) {
                         return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
-                            $this->runRouteMiddleware($request, $response, $context, $error);
+                            $this->runMiddleware($request, $response, $context, $error);
                         });
                     } else {
                         return $callback($error, $request, $response, function ($error = null) use ($request, $response, $context) {
-                            $this->runRouteMiddleware($request, $response, $context, $error);
+                            $this->runMiddleware($request, $response, $context, $error);
                         }, ...array_fill(0, $parameterCount - 4, null));
                     }
                 }
@@ -166,30 +171,51 @@ class App
         } catch (Throwable $e) {
             // Run error handler middleware
             if (!empty($context['callStack'][$context['index']])) {
-                return $this->runRouteMiddleware($request, $response, $context, $e);
+                return $this->runMiddleware($request, $response, $context, $e ?? 'Internal Server Error');
             }
             throw $e;
         } catch (Exception $e) {
             // Run error handler middleware
             if (!empty($context['callStack'][$context['index']])) {
-                return $this->runRouteMiddleware($request, $response, $context, $e);
+                return $this->runMiddleware($request, $response, $context, $e ?? 'Internal Server Error');
             }
             throw $e;
         }
     }
 
-    private function sendResponse(Response $response)
+    private function handler(&$request = null, &$response = null)
     {
-        if ($response->headerIsSent()) {
-            return $response->end();
-        } else if ($this->pageNotFound == true) {
-            $response->send('404 Page Not Found', 404);
-            return $response->end();
+        if ($this->config->get('server') === 'php') {
+            ob_start();
+        }
+        $this->context['request'] = new Request($request, $this);
+        $this->context['response'] = new Response($response, $this);
+        $this->dispatch($this->context['request'], $this->context['response']);
+        if (ob_get_level()) {
+            ob_end_flush();
         }
     }
 
     public function start()
     {
-        $this->requestHander();
+        if ($this->config->get('server') === null) {
+            $this->config->set('server', 'php', [
+                'server_instance' => null
+            ]);
+            $this->handler($_SERVER);
+        } else if ($this->config->get('server') === 'php') {
+            $this->handler($_SERVER);
+        } else if ($this->config->get('server') === 'openswoole') {
+            $server = $this->config->getOptions('server')['server_instance'] ?? null;
+            if ($server === null) {
+                throw new Exception('Error: openswoole instance is invalid');
+            }
+            $server->on("request", function ($request, $response) {
+                $this->handler($request, $response);
+            });
+            $server->start();
+        } else {
+            throw new Exception('Error: ' . $this->config->get('server') . ' server is not supported');
+        }
     }
 }

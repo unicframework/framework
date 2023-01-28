@@ -2,22 +2,19 @@
 
 namespace Unic\Http;
 
-use stdClass;
-use Unic\Cookie;
-use Unic\UploadedFileHandler;
-use Unic\Session;
+use Unic\Http\Request\IRequest;
+use Unic\Http\Request\PHPRequest;
 
-class Request
+class Request implements IRequest
 {
     // Request info
     public $hostname = null;
     public $port = null;
-    private $ip = null;
     public $scheme = null;
-    private $method = null;
+    public $method = null;
     public $protocol = null;
-    private $secure = null;
     public $accept = null;
+    public $charset = null;
     public $language = null;
     public $encoding = null;
     public $contentType = null;
@@ -31,181 +28,103 @@ class Request
     public $url = null;
     public $fullUrl = null;
     public $params = null;
-    private $query = null;
 
-    // Request input
-    private $body = null;
-    public $cookies = null;
-    public $sessions = null;
-    public $files = null;
-
-    private $isXhr = null;
-
+    public $app = null;
+    private $request = null;
     private static $instance = null;
 
-    private function __construct()
+    public function __construct(&$request, &$app)
     {
+        $this->app = $app;
+
+        if ($this->app->config->get('server') === 'php') {
+            $this->request = new PHPRequest($request, $this->app);
+        } else if ($this->app->config->get('server') === 'openswoole') {
+            // TODO
+        }
+
         // Request info
-
-        // Get hostname
-        $this->hostname = $_SERVER['SERVER_NAME'] ?? null;
-
-        // Get port
-        $this->port = $_SERVER['SERVER_PORT'] ?? null;
-
-        // Get scheme
-        $this->scheme = (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] === 1)) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') || (isset($_SERVER['HTTP_FRONT_END_HTTPS']) && strtolower($_SERVER['HTTP_FRONT_END_HTTPS']) !== 'off') ? 'https' : 'http';
-
-        // Get protocol
-        $this->protocol = $_SERVER['SERVER_PROTOCOL'] ?? null;
-
-        // Get accept content type
-        $this->accept = $_SERVER['HTTP_ACCEPT'] ?? null;
-
-        // Get accept language
-        $this->language = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null;
-
-        // Get http encoding
-        $this->encoding = $_SERVER['HTTP_ACCEPT_ENCODING'] ?? null;
-
-        // Get content type
-        $this->contentType = $_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? null;
-
-        // Get content length
-        $this->contentLength = $_SERVER['CONTENT_LENGTH'] ?? $_SERVER['HTTP_CONTENT_LENGTH'] ?? null;
-
-        // Get user agent
-        $this->userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
-
-        // Get http referer
-        $this->referrer = $_SERVER['HTTP_REFERER'] ?? null;
-
+        $this->hostname = $this->request->hostname;
+        $this->port = $this->request->port;
+        $this->scheme = $this->request->scheme;
+        $this->method = $this->request->method;
+        $this->protocol = $this->request->protocol;
+        $this->accept = $this->request->accept;
+        $this->charset = $this->request->charset;
+        $this->language = $this->request->language;
+        $this->encoding = $this->request->encoding;
+        $this->contentType = $this->request->contentType;
+        $this->contentLength = $this->request->contentLength;
+        $this->userAgent = $this->request->userAgent;
+        $this->referrer = $this->request->referrer;
 
         // Request url
+        $this->baseUrl = $this->request->baseUrl;
+        $this->path = $this->request->path;
+        $this->url = $this->request->url;
+        $this->fullUrl = $this->request->fullUrl;
+        $this->params = $this->request->params;
 
-        // Get site base url
-        $this->baseUrl = $this->scheme . '://' . $_SERVER['HTTP_HOST'];
-
-        // Get request path without query string
-        $this->path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-
-        // Get request url
-        $this->url = $_SERVER['REQUEST_URI'] ?? null;
-
-        // Get site full url
-        $this->fullUrl = $this->scheme . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-
-        // Get url parameters
-        $this->params = new stdClass();
-
-
-        // Request input
-
-        // Get files data
-        $this->files = new UploadedFileHandler();
-
-        // Get session data
-        $this->sessions = new Session();
-
-        // Get cookie data
-        $this->cookies = new Cookie();
+        self::$instance = $this;
     }
 
     public static function getInstance()
     {
-        if (self::$instance == null) {
-            self::$instance = new Request();
-        }
         return self::$instance;
     }
 
-    public function header(string $header)
+    public function header(string $header = null)
     {
-        return $_SERVER[strtoupper($header)] ?? null;
+        return $this->request->header($header);
+    }
+
+    public function rawHeader()
+    {
+        return $this->request->rawHeader();
+    }
+
+    public function body(string $key = null)
+    {
+        return $this->request->body($key);
     }
 
     public function rawBody()
     {
-        return file_get_contents('php://input');
+        return $this->request->rawBody();
     }
 
-    public function body()
+    public function query(string $key = null)
     {
-        // Parse request body
-        if ($this->body != null) {
-            return $this->body;
-        }
-        $contentType = strtolower($this->contentType ?? '');
-        $this->body = new stdClass();
-        if ($contentType != null) {
-            if ($contentType == 'application/x-www-form-urlencoded') {
-                $bodyStringList = explode('&', $this->rawBody());
-                foreach ($bodyStringList as $row) {
-                    $tmp = explode('=', $row);
-                    $this->body->{$tmp[0]} = $tmp[1] ?? null;
-                }
-            } else if ($contentType == 'application/json') {
-                $this->body = json_decode($this->rawBody() ?? '');
-            } else if (preg_match('/multipart\/form-data;/', $contentType)) {
-                $this->body = (object) $_REQUEST;
-            }
-        }
-        return $this->body;
+        return $this->request->query($key);
     }
 
     public function queryString()
     {
-        // Get query string
-        return $_SERVER['QUERY_STRING'] ?? null;
+        return $this->request->queryString();
     }
 
-    public function query()
+    public function files(string $name = null)
     {
-        // Get query string
-        if ($this->query != null) {
-            return $this->query;
-        }
-        $queryStringList = explode('&', $this->queryString() ?? '') ?? [];
-        $this->query = new stdClass();
-        foreach ($queryStringList as $row) {
-            $tmp = explode('=', $row);
-            $this->query->{$tmp[0]} = $tmp[1];
-        }
-        return $this->query;
+        return $this->request->files($name);
     }
 
-    public function method()
+    public function cookie(string $name = null)
     {
-        // Get request method get, post, put, delete
-        if ($this->method != null) {
-            return $this->method;
-        }
-        $this->method = isset($_SERVER['REQUEST_METHOD']) ? strtolower($_SERVER['REQUEST_METHOD']) : null;
-        return $this->method;
-    }
-
-    public function isMethod(string $method)
-    {
-        return strtolower($method) == $this->method();
+        return $this->request->cookie($name);
     }
 
     public function ip()
     {
-        // Get user ip
-        return $_SERVER['SERVER_ADDR'] ?? $_SERVER['REMOTE_ADDR'] ?? null;
+        return $this->request->ip();
     }
 
     public function isXhr()
     {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest' ? true : false;
+        return $this->request->isXhr();
     }
 
     public function isSecure()
     {
-        if ($this->secure != null) {
-            return $this->secure;
-        }
-        $this->secure = strtolower($this->scheme) == 'https' ? true : false;
-        return $this->secure;
+        return $this->request->isSecure();
     }
 }
