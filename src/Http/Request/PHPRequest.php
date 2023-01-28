@@ -50,7 +50,8 @@ class PHPRequest implements IRequest
         $this->hostname = $this->request['SERVER_NAME'] ?? null;
         $this->port = $this->request['SERVER_PORT'] ?? null;
         $this->scheme = (isset($this->request['HTTPS']) && ($this->request['HTTPS'] === 'on' || $this->request['HTTPS'] === 1)) || (isset($this->request['HTTP_X_FORWARDED_PROTO']) && $this->request['HTTP_X_FORWARDED_PROTO'] === 'https') || (isset($this->request['HTTP_FRONT_END_HTTPS']) && strtolower($this->request['HTTP_FRONT_END_HTTPS']) !== 'off') ? 'https' : 'http';
-        $this->method = isset($this->request['REQUEST_METHOD']) ? strtoupper($this->request['REQUEST_METHOD']) : null;
+        $this->method = $this->request['REQUEST_METHOD'] ?? $this->request['HTTP_METHOD'] ?? null;
+        $this->method = $this->method !== null ? strtoupper($this->method) : null;
         $this->protocol = $this->request['SERVER_PROTOCOL'] ?? null;
         $this->accept = $this->request['HTTP_ACCEPT'] ?? null;
         $this->language = $this->request['HTTP_ACCEPT_LANGUAGE'] ?? null;
@@ -114,7 +115,7 @@ class PHPRequest implements IRequest
                 } else if ($contentType == 'application/json') {
                     $this->body = json_decode($this->rawBody() ?? '');
                 } else if (preg_match('/multipart\/form-data;/', $contentType)) {
-                    if (strtoupper($this->method()) === 'POST') {
+                    if ($this->method === 'POST') {
                         $this->body = (object) $_POST;
                     } else {
                         $this->body = (object) $_REQUEST;
