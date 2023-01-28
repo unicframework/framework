@@ -123,7 +123,6 @@ class App
         // Page not found
         if ($routeNotMatched == true && $response instanceof Response && $response->headerSent() === false) {
             $response->send('404 Page Not Found', 404);
-            $response->end();
         }
         $request = null;
         $response = null;
