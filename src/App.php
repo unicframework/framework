@@ -9,6 +9,7 @@ use Unic\Http\Response;
 use Unic\Router\HttpRouterTrait;
 use Unic\Middleware\MiddlewareTrait;
 use Unic\Server\ServerTrait;
+use Unic\Helpers\HelperTrait;
 use Exception;
 use stdClass;
 use Throwable;
@@ -18,7 +19,7 @@ class App
     use HttpRouterTrait,
         MiddlewareTrait,
         ServerTrait,
-        Helpers {
+        HelperTrait {
         HttpRouterTrait::get as protected getMethod;
     }
 
@@ -32,7 +33,7 @@ class App
         $this->config = new Settings();
     }
 
-    public function set($config, $value = null, array $options = [])
+    public function set(string $config, $value = null, array $options = [])
     {
         $this->config->set($config, $value, $options);
     }
@@ -45,11 +46,20 @@ class App
         return $this->getMethod($route, ...$callback);
     }
 
+    public function enable(string $config) {
+        $this->config->set($config, true);
+    }
+
+    public function disabled(string $config) {
+        $this->config->set($config, false);
+    }
+
     private function dispatch(Request &$request, Response &$response)
     {
         $routeNotMatched = true;
 
         $callStack = [];
+        $path = trim($request->path, '/');
         foreach ($this->routes as $row) {
             // Compiler routes
             if ($row['type'] == 'route') {
@@ -85,7 +95,7 @@ class App
             } else {
                 $parsedRoute = [];
                 // Parse route path parameters
-                if (preg_match("#^{$row['route']['regex']}$#", $request->path, $matches)) {
+                if (preg_match("#^{$row['route']['regex']}$#", $path, $matches)) {
                     $params = array();
                     $i = 1;
                     foreach ($row['route']['params'] as $param) {
@@ -97,10 +107,10 @@ class App
                 } else {
                     $parsedRoute[$row['route']['path']] = $row;
                 }
-                if (!empty($parsedRoute[$request->path])) {
-                    if (in_array($request->method, $parsedRoute[$request->path]['route']['method'])) {
-                        $request->params = $parsedRoute[$request->path]['route']['params'];
-                        $callbacks = $parsedRoute[$request->path]['callbacks'];
+                if (!empty($parsedRoute[$path])) {
+                    if (in_array($request->method, $parsedRoute[$path]['route']['method'])) {
+                        $request->params = $parsedRoute[$path]['route']['params'];
+                        $callbacks = $parsedRoute[$path]['callbacks'];
                         $routeNotMatched = false;
                     }
                 }
@@ -182,13 +192,16 @@ class App
         }
     }
 
-    private function handler(&$request = null, &$response = null)
+    public function handler(&$request = null, &$response = null)
     {
-        if ($this->config->get('server') === 'php') {
-            ob_start();
+        if ($this->config->get('server') === null) {
+            $this->useDefaultServer();
         }
         $this->context['request'] = new Request($request, $this);
         $this->context['response'] = new Response($response, $this);
+        if ($this->config->get('server') === 'php') {
+            ob_start();
+        }
         $this->dispatch($this->context['request'], $this->context['response']);
         if (ob_get_level()) {
             ob_end_flush();
@@ -197,22 +210,17 @@ class App
 
     public function start()
     {
-        if ($this->config->get('server') === null) {
-            $this->config->set('server', 'php', [
-                'server_instance' => null
-            ]);
-            $this->handler($_SERVER);
-        } else if ($this->config->get('server') === 'php') {
-            $this->handler($_SERVER);
-        } else if ($this->config->get('server') === 'openswoole') {
+        if ($this->config->get('server') === 'openswoole') {
             $server = $this->config->getOptions('server')['server_instance'] ?? null;
             if ($server === null) {
-                throw new Exception('Error: openswoole instance is invalid');
+                throw new Exception('Error: openswoole server instance is invalid');
             }
             $server->on("request", function ($request, $response) {
                 $this->handler($request, $response);
             });
             $server->start();
+        } else if ($this->config->get('server') === null || $this->config->get('server') === 'php') {
+            $this->handler($_SERVER);
         } else {
             throw new Exception('Error: ' . $this->config->get('server') . ' server is not supported');
         }

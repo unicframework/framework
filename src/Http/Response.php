@@ -5,6 +5,7 @@ namespace Unic\Http;
 use stdClass;
 use Unic\Http\Response\IResponse;
 use Unic\Http\Response\PHPResponse;
+use Exception;
 
 class Response implements IResponse
 {
@@ -20,6 +21,8 @@ class Response implements IResponse
             $this->response = new PHPResponse($response, $this->app);
         } else if ($this->app->config->get('server') === 'openswoole') {
             // TODO
+        } else {
+            throw new Exception('Error: ' . $this->config->get('server') . ' server is not supported');
         }
         $this->locals = new stdClass();
     }

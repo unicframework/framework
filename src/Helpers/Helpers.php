@@ -1,29 +1,31 @@
 <?php
 
-namespace Unic;
+namespace Unic\Helpers;
 
-trait Helpers
-{
-    public function asset(string $path = '')
+use COM;
+
+class Helpers {
+    public static function isJson($data)
     {
-        return $this->url(rtrim($this->config->get('public_url'), '/') . '/' . ltrim($path, '/'));
+        return is_array($data) ? false : is_array(json_decode($data ?? '', true));
     }
 
-    public function url(string $path = '')
+    public static function getFileSize(string $filePath)
     {
-        return !empty($this->context['request']) ? rtrim($this->context['request']->baseUrl, '/') . '/' . trim($path, '/') : '/';
-    }
-
-    public function route(string $name, array $params = [])
-    {
-        $path = $this->getNamedRoute($name, $params);
-        if ($path != null) {
-            return $this->url($path);
+        $size = filesize($filePath);
+        if ($size < 0) {
+            if (!(strtoupper(substr(PHP_OS, 0, 3)) == 'WIN')) {
+                $size = trim(`stat -c%s $filePath`);
+            } else {
+                $fsobj = new COM("Scripting.FileSystemObject");
+                $f = $fsobj->GetFile($filePath);
+                $size = $f->Size;
+            }
         }
-        return null;
+        return $size;
     }
 
-    public function getMimeType(string $filePath)
+    public static function getMimeType(string $filePath)
     {
         $mimeTypes = array(
             'ez' => 'application/andrew-inset',

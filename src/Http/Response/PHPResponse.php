@@ -2,7 +2,7 @@
 
 namespace Unic\Http\Response;
 
-use COM;
+use Unic\Helpers\Helpers;
 use stdClass;
 use Exception;
 
@@ -151,9 +151,9 @@ class PHPResponse implements IResponse
         if ($mimeType !== null) {
             $this->header('Content-Type', $mimeType);
         } else {
-            $this->header('Content-Type', $this->app->getMimeType($filePath) ?? mime_content_type($filePath));
+            $this->header('Content-Type', Helpers::getMimeType($filePath) ?? mime_content_type($filePath));
         }
-        $this->header('Content-Length', $this->getFileSize($filePath));
+        $this->header('Content-Length', Helpers::getFileSize($filePath));
 
         $this->filePath = $filePath;
         if ($httpResponseCode !== null) {
@@ -171,7 +171,7 @@ class PHPResponse implements IResponse
         $this->header('Expires', 0);
         $this->header('Cache-Control', 'must-revalidate');
         $this->header('Pragma', 'public');
-        $this->header('Content-Length', $this->getFileSize($filePath));
+        $this->header('Content-Length', Helpers::getFileSize($filePath));
 
         $this->filePath = $filePath;
         if ($httpResponseCode !== null) {
@@ -245,7 +245,7 @@ class PHPResponse implements IResponse
 
         if ($this->contentType === 'html') {
             if ($this->viewPath !== null) {
-                render($this->viewPath, $this->viewArgs, $this->app);
+                $this->app->config->getOptions('view_engine')['render']($this->viewPath, $this->viewArgs, $this->app);
             } else if (gettype($this->content) === 'object') {
                 echo json_encode($this->content);
             } else {
@@ -256,7 +256,7 @@ class PHPResponse implements IResponse
         if ($this->contentType === 'json') {
             if (gettype($this->content) == 'object') {
                 echo json_encode($this->content);
-            } else if ($this->isJson($this->content)) {
+            } else if (Helpers::isJson($this->content)) {
                 echo $this->content;
             } else {
                 echo json_encode($this->content ?? '');
@@ -298,59 +298,5 @@ class PHPResponse implements IResponse
         $this->viewArgs = null;
 
         return $this;
-    }
-
-    private function isJson($data)
-    {
-        return is_array($data) ? false : is_array(json_decode($data ?? '', true));
-    }
-
-    private function getFileSize(string $filePath)
-    {
-        $size = filesize($filePath);
-        if ($size < 0) {
-            if (!(strtoupper(substr(PHP_OS, 0, 3)) == 'WIN')) {
-                $size = trim(`stat -c%s $filePath`);
-            } else {
-                $fsobj = new COM("Scripting.FileSystemObject");
-                $f = $fsobj->GetFile($filePath);
-                $size = $f->Size;
-            }
-        }
-        return $size;
-    }
-}
-
-function render($_self, $_args, $_context)
-{
-    if ($_context->config->get('view_engine') === 'twig') {
-        $loader = new \Twig\Loader\FilesystemLoader($_context->config->get('views'));
-        $twig = new \Twig\Environment($loader, $_context->config->getOptions('view_engine') ?? []);
-
-        // Add helper functions
-        $twig->addFunction(new \Twig\TwigFunction('route', function ($path) use ($_context) {
-            return $_context->route($path);
-        }));
-        $twig->addFunction(new \Twig\TwigFunction('url', function ($path) use ($_context) {
-            return $_context->url($path);
-        }));
-        $twig->addFunction(new \Twig\TwigFunction('asset', function ($path) use ($_context) {
-            return $_context->asset($path);
-        }));
-
-        echo $twig->render($_self, $_args);
-    } else {
-        $_self = $_context->config->get('views') . '/' . trim($_self, '/');
-
-        // Set variables of array.
-        foreach ($_args as $variable => $value) {
-            ${$variable} = $value;
-        }
-
-        // Remove private variables
-        unset($_context);
-        unset($_args);
-
-        require_once($_self);
     }
 }

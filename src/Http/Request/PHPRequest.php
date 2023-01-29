@@ -10,34 +10,21 @@ class PHPRequest implements IRequest
     public $host = null;
     public $hostname = null;
     public $port = null;
-    private $ip = null;
-    public $scheme = null;
     public $method = null;
     public $protocol = null;
-    public $accept = null;
-    public $language = null;
-    public $encoding = null;
-    public $contentType = null;
-    public $contentLength = null;
-    public $userAgent = null;
-    public $referrer = null;
-
-    // Request url
-    public $baseUrl = null;
-    public $path = null;
     public $url = null;
-    public $fullUrl = null;
+    public $path = null;
+    public $queryString = null;
     public $params = null;
-    private $query = null;
-    private $queryString = null;
 
-    // Request input
+    private $ip = null;
+    private $query = null;
     private $body = null;
     private $files = null;
     private $cookies = null;
-
     private $headers = null;
     private $rawHeader = null;
+    private $isSecure = null;
 
     public $app = null;
     private $request = null;
@@ -46,26 +33,22 @@ class PHPRequest implements IRequest
     {
         $this->app = $app;
         $this->request = $request;
+
         $this->host = $this->request['HTTP_HOST'] ?? null;
         $this->hostname = $this->request['SERVER_NAME'] ?? null;
         $this->port = $this->request['SERVER_PORT'] ?? null;
-        $this->scheme = (isset($this->request['HTTPS']) && ($this->request['HTTPS'] === 'on' || $this->request['HTTPS'] === 1)) || (isset($this->request['HTTP_X_FORWARDED_PROTO']) && $this->request['HTTP_X_FORWARDED_PROTO'] === 'https') || (isset($this->request['HTTP_FRONT_END_HTTPS']) && strtolower($this->request['HTTP_FRONT_END_HTTPS']) !== 'off') ? 'https' : 'http';
         $this->method = $this->request['REQUEST_METHOD'] ?? $this->request['HTTP_METHOD'] ?? null;
         $this->method = $this->method !== null ? strtoupper($this->method) : null;
         $this->protocol = $this->request['SERVER_PROTOCOL'] ?? null;
-        $this->accept = $this->request['HTTP_ACCEPT'] ?? null;
-        $this->language = $this->request['HTTP_ACCEPT_LANGUAGE'] ?? null;
-        $this->encoding = $this->request['HTTP_ACCEPT_ENCODING'] ?? null;
-        $this->contentType = $this->request['CONTENT_TYPE'] ?? $this->request['HTTP_CONTENT_TYPE'] ?? null;
-        $this->contentLength = $this->request['CONTENT_LENGTH'] ?? $this->request['HTTP_CONTENT_LENGTH'] ?? null;
-        $this->userAgent = $this->request['HTTP_USER_AGENT'] ?? null;
-        $this->referrer = $this->request['HTTP_REFERER'] ?? null;
-
-        $this->baseUrl = $this->scheme . '://' . $this->host;
-        $this->path = trim(parse_url($this->request['REQUEST_URI'], PHP_URL_PATH), '/');
-        $this->url = rtrim($this->request['REQUEST_URI'], '/') ?? null;
-        $this->fullUrl = $this->scheme . '://' . $this->host . $this->url;
+        $this->url = $this->request['REQUEST_URI'] ?? null;
+        $this->url = $this->url !== '/' ? rtrim($this->url, '/') : $this->url;
+        $this->path = parse_url($this->request['REQUEST_URI'], PHP_URL_PATH);
+        $this->queryString = $this->request['QUERY_STRING'] ?? null;
         $this->params = new stdClass();
+    }
+
+    public function scheme() {
+        return $this->isSecure() ? 'https' : 'http';
     }
 
     public function header(string $header = null)
@@ -73,11 +56,10 @@ class PHPRequest implements IRequest
         if ($this->headers === null) {
             $this->headers = [];
             foreach ($this->request as $key => $value) {
-                if (substr($key, 0, 5) !== 'HTTP_') {
-                    continue;
+                if (substr($key, 0, 5) === 'HTTP_') {
+                    $headerName = ucwords(str_replace('_', '-', strtolower(substr($key, 5))), '-');
+                    $this->headers[$headerName] = $value;
                 }
-                $headerName = ucwords(str_replace('_', '-', strtolower(substr($key, 5))), '-');
-                $this->headers[$headerName] = $value;
             }
         }
 
@@ -101,20 +83,17 @@ class PHPRequest implements IRequest
     public function body(string $key = null)
     {
         if ($this->body === null) {
-            $contentType = strtolower($this->contentType ?? '');
             $this->body = new stdClass();
             if ($contentType != null) {
-                if ($contentType == 'application/x-www-form-urlencoded') {
-                    $bodyStringList = explode('&', $this->rawBody() ?? '');
-                    foreach ($bodyStringList as $row) {
-                        $tmp = explode('=', $row, 2);
-                        if (isset($tmp[0]) && $tmp[0] !== '') {
-                            $this->body->{$tmp[0]} = $tmp[1] ?? null;
-                        }
+                if (stripos($this->header('Content-Type') ?? '', 'application/x-www-form-urlencoded') !== false) {
+                    $urlEncodedString = [];
+                    parse_str($this->rawBody() ?? '', $urlEncodedString);
+                    foreach ($urlEncodedString as $key => $value) {
+                        $this->body->{$key} = $value;
                     }
-                } else if ($contentType == 'application/json') {
+                } else if (stripos($this->header('Content-Type') ?? '', 'application/json') !== false) {
                     $this->body = json_decode($this->rawBody() ?? '');
-                } else if (preg_match('/multipart\/form-data;/', $contentType)) {
+                } else if (stripos($this->header('Content-Type') ?? '', 'multipart/form-data') !== false) {
                     if ($this->method === 'POST') {
                         $this->body = (object) $_POST;
                     } else {
@@ -143,14 +122,6 @@ class PHPRequest implements IRequest
             return $this->query->{$key} ?? null;
         }
         return $this->query;
-    }
-
-    public function queryString()
-    {
-        if ($this->queryString === null) {
-            $this->queryString = $this->request['QUERY_STRING'] ?? null;
-        }
-        return $this->queryString;
     }
 
     public function files(string $name = null)
@@ -209,8 +180,7 @@ class PHPRequest implements IRequest
 
     public function ip()
     {
-        // Get user ip
-        return $this->request['REMOTE_ADDR'] ?? $this->request['SERVER_ADDR'] ?? null;
+        return $this->request['REMOTE_ADDR'] ?? null;
     }
 
     public function isXhr()
@@ -220,6 +190,23 @@ class PHPRequest implements IRequest
 
     public function isSecure()
     {
-        return strtolower($this->scheme) == 'https' ? true : false;
+        if ($this->isSecure !== null) {
+            return $this->isSecure;
+        }
+
+        if (isset($this->request['SERVER_PORT']) && intval($this->request['SERVER_PORT']) === 443) {
+            $this->isSecure = true;
+        } else if (isset($this->request['HTTPS']) && strtolower($this->request['HTTPS']) !== 'off') {
+            $this->isSecure = true;
+        } else if (isset($this->request['REQUEST_SCHEME']) && strtolower($this->request['REQUEST_SCHEME']) === 'https') {
+            $this->isSecure = true;
+        } else if (isset($this->request['HTTP_X_FORWARDED_PROTO']) && strtolower($this->request['HTTP_X_FORWARDED_PROTO']) === 'https') {
+            $this->isSecure = true;
+        } else if (isset($this->request['HTTP_FRONT_END_HTTPS']) && strtolower($this->request['HTTP_FRONT_END_HTTPS']) !== 'off') {
+            $this->isSecure = true;
+        } else {
+            $this->isSecure = false;
+        }
+        return $this->isSecure;
     }
 }

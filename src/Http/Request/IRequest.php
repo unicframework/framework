@@ -9,7 +9,6 @@ interface IRequest
     public function body(string $key = null);
     public function rawBody();
     public function query(string $key = null);
-    public function queryString();
     public function files(string $name = null);
     public function cookie(string $name = null);
     public function ip();
