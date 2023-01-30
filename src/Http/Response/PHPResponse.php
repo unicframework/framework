@@ -36,8 +36,6 @@ class PHPResponse implements IResponse
                 $this->headers[ucwords(strtolower($headerAndValue[0]), '-')] = $headerAndValue[1];
             }
         }
-        // Set default headers
-        $this->header('X-Powered-By', 'Unic Framework');
     }
 
     public function headerSent()
