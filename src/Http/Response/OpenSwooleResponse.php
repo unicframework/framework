@@ -103,8 +103,7 @@ class OpenSwooleResponse implements IResponse
         if ($httpResponseCode !== null) {
             $this->status($httpResponseCode);
         }
-        $this->response->write($string);
-        $this->end();
+        $this->end($string);
     }
 
     public function render(string $viewPath, array $args = [])
@@ -115,8 +114,7 @@ class OpenSwooleResponse implements IResponse
         }
         ob_start();
         $this->app->config->getOptions('view_engine')['render']($viewPath, $args, $this->app);
-        $this->response->write(ob_get_clean());
-        $this->end();
+        $this->end(ob_get_clean());
     }
 
     public function json($data, int $httpResponseCode = null)
@@ -126,13 +124,12 @@ class OpenSwooleResponse implements IResponse
             $this->status($httpResponseCode);
         }
         if (gettype($data) == 'object') {
-            $this->response->write(json_encode($data));
+            $this->end(json_encode($data));
         } else if (Helpers::isJson($data)) {
-            $this->response->write($data);
+            $this->end($data);
         } else {
-            $this->response->write(json_encode($data ?? ''));
+            $this->end(json_encode($data ?? ''));
         }
-        $this->end();
     }
 
     public function file(string $filePath, string $mimeType = null, int $httpResponseCode = null)
