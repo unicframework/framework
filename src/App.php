@@ -178,6 +178,8 @@ class App
         if ($this->config->get('server') === 'php') {
             ob_start();
         }
+        // Set default headers
+        $this->context['response']->header('X-Powered-By', 'Unic Framework');
         $this->dispatch($this->context['request'], $this->context['response']);
         if (ob_get_level()) {
             ob_end_flush();
