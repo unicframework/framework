@@ -19,8 +19,6 @@ class OpenSwooleResponse implements IResponse
         $this->app = $app;
         $this->response = $response;
         $this->locals = new stdClass();
-        // Set default headers
-        $this->header('X-Powered-By', 'Unic Framework');
     }
 
     public function headerSent()
