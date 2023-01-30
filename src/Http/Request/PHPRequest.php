@@ -88,8 +88,8 @@ class PHPRequest implements IRequest
                 if (stripos($this->header('Content-Type'), 'application/x-www-form-urlencoded') !== false) {
                     $urlEncodedString = [];
                     parse_str($this->rawBody() ?? '', $urlEncodedString);
-                    foreach ($urlEncodedString as $key => $value) {
-                        $this->body->{$key} = $value;
+                    foreach ($urlEncodedString as $name => $value) {
+                        $this->body->{$name} = $value;
                     }
                 } else if (stripos($this->header('Content-Type'), 'application/json') !== false) {
                     $this->body = json_decode($this->rawBody() ?? '');
