@@ -4,6 +4,7 @@ namespace Unic\Http\Request;
 
 interface IRequest
 {
+    public function scheme();
     public function header(string $header = null);
     public function rawHeader();
     public function body(string $key = null);

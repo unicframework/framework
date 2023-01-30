@@ -6,6 +6,7 @@ use stdClass;
 use Unic\Http\Response\IResponse;
 use Unic\Http\Response\PHPResponse;
 use Exception;
+use Unic\Http\Response\OpenSwooleResponse;
 
 class Response implements IResponse
 {
@@ -20,9 +21,9 @@ class Response implements IResponse
         if ($this->app->config->get('server') === 'php') {
             $this->response = new PHPResponse($response, $this->app);
         } else if ($this->app->config->get('server') === 'openswoole') {
-            // TODO
+            $this->response = new OpenSwooleResponse($response, $this->app);
         } else {
-            throw new Exception('Error: ' . $this->config->get('server') . ' server is not supported');
+            throw new Exception('Error: ' . $this->app->config->get('server') . ' server is not supported');
         }
         $this->locals = new stdClass();
     }

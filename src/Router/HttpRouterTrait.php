@@ -9,6 +9,7 @@ use Unic\Router\HttpRoute;
 trait HttpRouterTrait
 {
     private $routes = [];
+    private $parsedRoutes = [];
     private static $namedRoutes = [];
     private $supportedMethods = [
         'CHECKOUT',
@@ -37,6 +38,51 @@ trait HttpRouterTrait
         'VIEW',
     ];
     private $prefix = null;
+
+    protected function parseRoute()
+    {
+        if (!empty($this->parsedRoutes)) {
+            return $this->parsedRoutes;
+        }
+        foreach ($this->routes as $row) {
+            // Compile routes
+            if ($row['type'] == 'route') {
+                if (preg_match_all('/{([^{]*)}/', $row['route']['path'], $matches)) {
+                    $skipped = false;
+                    foreach ($matches as $match) {
+                        // Skip first data from array
+                        if ($skipped == false) {
+                            $skipped = true;
+                        } else {
+                            $params = $match;
+                        }
+                    }
+                } else {
+                    $params = [];
+                }
+
+                $row['route']['params'] = $params;
+                $row['route']['regex'] = preg_replace('/{([^{]*)}/', '([^/]+)', $row['route']['path']);
+
+                if (!empty($row['route']['name']) && !empty(self::$namedRoutes[$row['route']['name']])) {
+                    self::$namedRoutes[$row['route']['name']] = [
+                        'path' => $row['route']['path'],
+                        'params' => $row['route']['params'],
+                    ];
+                }
+            }
+            $this->parsedRoutes[] = $row;
+        }
+        return $this->parsedRoutes;
+    }
+
+    protected function getParseRoute()
+    {
+        if (!empty($this->parsedRoutes)) {
+            return $this->parsedRoutes;
+        }
+        return $this->parseRoute();
+    }
 
     private function getNamedRoute(string $name, array $params = [])
     {

@@ -84,16 +84,19 @@ class Settings
         }
     }
 
-    public function enable(string $config) {
+    public function enable(string $config)
+    {
         $this->setConfig($config, true);
     }
 
-    public function disabled(string $config) {
+    public function disabled(string $config)
+    {
         $this->setConfig($config, false);
     }
 }
 
-function getViewRenderEngine(string $engine, array $options = []) {
+function getViewRenderEngine(string $engine, array $options = [])
+{
     $supportedViewEngines = [
         'php' => function ($_self, $_args, $_context) {
             $_self = $_context->config->get('views') . '/' . trim($_self, '/');
@@ -114,4 +117,3 @@ function getViewRenderEngine(string $engine, array $options = []) {
     ];
     return $supportedViewEngines[$engine] ?? $options['render'];
 }
-

@@ -46,11 +46,13 @@ class App
         return $this->getMethod($route, ...$callback);
     }
 
-    public function enable(string $config) {
+    public function enable(string $config)
+    {
         $this->config->set($config, true);
     }
 
-    public function disabled(string $config) {
+    public function disabled(string $config)
+    {
         $this->config->set($config, false);
     }
 
@@ -60,34 +62,7 @@ class App
 
         $callStack = [];
         $path = trim($request->path, '/');
-        foreach ($this->routes as $row) {
-            // Compiler routes
-            if ($row['type'] == 'route') {
-                if (preg_match_all('/{([^{]*)}/', $row['route']['path'], $matches)) {
-                    $skipped = false;
-                    foreach ($matches as $match) {
-                        // Skip first data from array
-                        if ($skipped == false) {
-                            $skipped = true;
-                        } else {
-                            $params = $match;
-                        }
-                    }
-                } else {
-                    $params = [];
-                }
-
-                $row['route']['params'] = $params;
-                $row['route']['regex'] = preg_replace('/{([^{]*)}/', '([^/]+)', $row['route']['path']);
-
-                if (!empty($row['route']['name'])) {
-                    self::$namedRoutes[$row['route']['name']] = [
-                        'path' => $row['route']['path'],
-                        'params' => $row['route']['params'],
-                    ];
-                }
-            }
-
+        foreach ($this->parsedRoutes as $row) {
             // Add callbacks into callstack
             $callbacks = [];
             if ($row['type'] == 'middleware') {
@@ -195,10 +170,11 @@ class App
     public function handler(&$request = null, &$response = null)
     {
         if ($this->config->get('server') === null) {
-            $this->useDefaultServer();
+            $this->useDefaultServer($_SERVER);
         }
         $this->context['request'] = new Request($request, $this);
         $this->context['response'] = new Response($response, $this);
+        $this->parseRoute();
         if ($this->config->get('server') === 'php') {
             ob_start();
         }

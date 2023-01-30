@@ -5,6 +5,7 @@ namespace Unic\Http;
 use Unic\Http\Request\IRequest;
 use Unic\Http\Request\PHPRequest;
 use Exception;
+use Unic\Http\Request\OpenSwooleRequest;
 
 class Request implements IRequest
 {
@@ -29,15 +30,20 @@ class Request implements IRequest
         if ($this->app->config->get('server') === 'php') {
             $this->request = new PHPRequest($request, $this->app);
         } else if ($this->app->config->get('server') === 'openswoole') {
-            // TODO
+            $this->request = new OpenSwooleRequest($request, $this->app);
         } else {
-            throw new Exception('Error: ' . $this->config->get('server') . ' server is not supported');
+            throw new Exception('Error: ' . $this->app->config->get('server') . ' server is not supported');
         }
 
         // Set properties of request
         foreach ($this->request as $key => $value) {
             $this->{$key} = $value;
         }
+    }
+
+    public function scheme(string $header = null)
+    {
+        return $this->request->scheme($header);
     }
 
     public function header(string $header = null)

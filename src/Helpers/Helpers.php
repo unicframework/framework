@@ -4,7 +4,8 @@ namespace Unic\Helpers;
 
 use COM;
 
-class Helpers {
+class Helpers
+{
     public static function isJson($data)
     {
         return is_array($data) ? false : is_array(json_decode($data ?? '', true));
