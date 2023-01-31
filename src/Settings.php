@@ -35,25 +35,7 @@ class Settings
         return isset($this->configs[strtolower($config)]['options']) ? $this->configs[strtolower($config)]['options'] : null;
     }
 
-    public function set($config, $value = null, array $options = [])
-    {
-        if (is_array($config)) {
-            foreach ($config as $config => $value) {
-                if (is_numeric($config)) {
-                    continue;
-                }
-                if (is_array($value)) {
-                    $this->setConfig($config, ...$value);
-                } else {
-                    $this->setConfig($config, $value);
-                }
-            }
-        } else {
-            $this->setConfig($config, $value, $options);
-        }
-    }
-
-    private function setConfig(string $config, $value = null, array $options = [])
+    public function set(string $config, $value = null, array $options = [])
     {
         // Remove whitespace and special characters
         $config = strtolower($config);
